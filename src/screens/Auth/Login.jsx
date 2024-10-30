@@ -1,13 +1,24 @@
-import React, { useState, useCallback } from "react";
-import { View, Text, SafeAreaView, Dimensions, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import React, {useState, useCallback, useEffect} from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  Dimensions,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { useNavigation } from "@react-navigation/native";
-import Theme from "../../configs/color";
+import {useNavigation} from '@react-navigation/native';
+import Theme from '../../configs/color';
 import axiosInstance from '../../configs/axios';
-import { storeData } from '../../configs/asyncStorage';
-
+import {storeData, getData} from '../../configs/asyncStorage';
+import {useTailwind} from 'tailwindcss-react-native';
 export default function Login() {
-  const { height } = Dimensions.get('window');
+  const {height} = Dimensions.get('window');
   const navigation = useNavigation();
 
   const [userData, setUserData] = useState({
@@ -20,7 +31,7 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const HandelChange = useCallback((key, value) => {
-    setUserData((prevData) => ({
+    setUserData(prevData => ({
       ...prevData,
       [key]: value,
     }));
@@ -32,53 +43,84 @@ export default function Login() {
       return;
     }
 
-    console.log("Bấm login");
-    axiosInstance.post('/login', userData)
-      .then((res) => {
+    axiosInstance
+      .post('/login', userData)
+      .then(res => {
         const res_data = res.data;
         if (res_data.code === 200) {
-          storeData('token', res_data.token);
-          storeData('refreshToken', res_data.refreshToken);
+          // storeData('token', res_data.token);
+          // storeData('refreshToken', res_data.refreshToken);
           storeData('userId', res_data.userId);
           storeData('role', JSON.stringify(res_data.role));
-
           if (res_data.role.includes('Admin')) {
-            navigation.navigate('Dashboard');
+            navigation.navigate('Main', {screen: 'Dashboard'});
           } else {
             navigation.navigate('Home');
           }
         } else {
           setError('Đăng nhập không thành công');
         }
-        
       })
-      .catch((err) => {
+      .catch(err => {
         console.log(err);
         setError('Tài khoản hoặc mật khẩu không đúng');
       });
   }, [userData, navigation]);
+  const [userId, setUserId] = useState(null);
 
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getData('userId');
+      const role = await getData('role');
+      if (id) {
+        console.log('đã có id rồi', id);
+        if (role.includes('Admin')) {
+            navigation.navigate('Main', {screen: 'Dashboard'});
+          } else {
+            navigation.navigate('Home');
+          }
+        setUserId(id);
+      } else {
+        console.log('Không tìm thấy userId');
+      }
+    };
+
+    fetchUserId(); // Gọi hàm fetchUserId
+  }, []);
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#5440F6" }}>
-      <View style={{ justifyContent: 'center', alignItems: 'center', height: height * 0.4 }}>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#5440F6'}}>
+      <View
+        style={{
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: height * 0.4,
+        }}>
         <View style={styles.shadowContainer}>
-          <FastImage source={require('../../assets/bglog.png')} style={{ width: '100%', height: '100%' }} resizeMode={FastImage.resizeMode.contain} />
+          <FastImage
+            source={require('../../assets/bglog.png')}
+            style={{width: '100%', height: '100%'}}
+            resizeMode={FastImage.resizeMode.contain}
+          />
         </View>
       </View>
 
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 10}
-      >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 10}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Tài khoản</Text>
             <TextInput
               placeholder="Nhập tài khoản"
               style={styles.input}
               value={userData.userName}
-              onChangeText={(value) => HandelChange("userName", value)}
+              onChangeText={value => HandelChange('userName', value)}
             />
           </View>
 
@@ -89,7 +131,7 @@ export default function Login() {
               secureTextEntry
               style={styles.input}
               value={userData.password}
-              onChangeText={(value) => HandelChange("password", value)}
+              onChangeText={value => HandelChange('password', value)}
             />
           </View>
 
@@ -99,10 +141,7 @@ export default function Login() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={HandleLogin}
-          >
+          <TouchableOpacity style={styles.loginButton} onPress={HandleLogin}>
             <Text style={styles.buttonText}>Đăng nhập</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -122,7 +161,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -132,12 +171,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
   },
-  label: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: Theme.primary,
-  },
+
   input: {
     height: 48,
     borderColor: 'gray',
@@ -156,15 +190,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loginButton: {
-    width: '80%',
+    width: '60%',
     height: 60,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.primary,
+    backgroundColor: '#FBBF24',
   },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 20,
+  },
+
+  label: {
+    color: '#4B5563',
+    marginLeft: 16,
+    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  input: {
+    padding: 16,
+    backgroundColor: '#F3F4F6',
+    color: '#4B5563',
+    borderRadius: 16,
+    marginBottom: 16,
   },
 });

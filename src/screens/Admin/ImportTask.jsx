@@ -1,305 +1,446 @@
 import {useNavigation, useRoute} from '@react-navigation/native';
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   TextInput,
   Button,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import {SelectList} from 'react-native-dropdown-select-list';
-import TaskItem from '../../components/TaskItem.jsx';
 import axiosInstance from '../../configs/axios';
-import Theme from '../../configs/color';
+import Toast from 'react-native-toast-message';
+import moment from 'moment-timezone';
+import LinearGradient from 'react-native-linear-gradient';
 
 function ImportTask() {
   const navigation = useNavigation();
   const route = useRoute();
   const user = route.params?.user;
-
-  // State variables for start and end time selections
-  const [startHour, setStartHour] = useState('');
-  const [startMinute, setStartMinute] = useState('');
-  const [endHour, setEndHour] = useState('');
-  const [endMinute, setEndMinute] = useState('');
-
-  // Sample hour and minute data
-  const hoursData = [
-    {key: '1', value: '00'},
-    {key: '2', value: '01'},
-    {key: '3', value: '02'},
-    {key: '4', value: '03'},
-    {key: '5', value: '04'},
-    {key: '6', value: '05'},
-    {key: '7', value: '06'},
-    {key: '8', value: '07'},
-    {key: '9', value: '08'},
-    {key: '10', value: '09'},
-    {key: '11', value: '10'},
-    {key: '12', value: '11'},
-    {key: '13', value: '12'},
-    {key: '14', value: '13'},
-    {key: '15', value: '14'},
-    {key: '16', value: '15'},
-    {key: '17', value: '16'},
-    {key: '18', value: '17'},
-    {key: '19', value: '18'},
-    {key: '20', value: '19'},
-    {key: '21', value: '20'},
-    {key: '22', value: '21'},
-    {key: '23', value: '22'},
-    {key: '24', value: '23'},
-  ];
-
-  const minutesData = [
-    {key: '1', value: '00'},
-    {key: '2', value: '05'},
-    {key: '3', value: '10'},
-    {key: '4', value: '15'},
-    {key: '5', value: '20'},
-    {key: '6', value: '25'},
-    {key: '7', value: '30'},
-    {key: '8', value: '35'},
-    {key: '9', value: '40'},
-    {key: '10', value: '45'},
-    {key: '11', value: '50'},
-    {key: '12', value: '55'},
-  ];
-
-  const [tasks, setTask] = React.useState([]);
-
-  const [list_task, setList_task] = useState([
+  const [tasks, setTasks] = useState([
     {
-      taskID: 0,
-      title: 'ten task',
-      description: 'huong dan',
       assignedToUserID: user.id,
-      status: 'sas',
-      createDate: '',
-      dueDate: '',
+      title: '',
+      description: '',
+      createDate: new Date(),
+      dueDate: new Date(),
     },
   ]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showCreatePicker, setShowCreatePicker] = useState(false);
+  const [showDuePicker, setShowDuePicker] = useState(false);
+  const [selectedCreateDate, setSelectedCreateDate] = useState(new Date());
+  const [selectedDueDate, setSelectedDueDate] = useState(new Date());
 
-  const addTask = () => {
-    setList_task(pre => [
-      ...pre,
-      {
-        taskID: 0,
-        title: 'ten task',
-        description: 'huong dan',
-        assignedToUserID: user.id,
-        status: 'sas',
-        createDate: '',
-        dueDate: '',
-      },
-    ]);
+  const onCreateDateChange = (event, selectedTime) => {
+    if (selectedTime) {
+      setSelectedCreateDate(selectedTime);
+    }
   };
 
-  const SaveTask = ()=>{
-    console.log(list_task)
-    axiosInstance.post("/import-task-user", list_task)
-    .then(res=>{
+  const onDueDateChange = (event, selectedTime) => {
+    if (selectedTime) {
+      setSelectedDueDate(selectedTime);
+    }
+  };
 
-    })
-    .catch(err=>{
-        console.log(err)
-    })
-  }
+  const confirmCreateDate = () => {
+    const updatedTasks = [...tasks];
+    const formattedDate = moment(selectedCreateDate)
+      .tz('Asia/Ho_Chi_Minh')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    updatedTasks[currentIndex].createDate = formattedDate;
+    setTasks(updatedTasks);
+    setShowCreatePicker(false);
+  };
 
-  useEffect(()=>{
-    axiosInstance.get(`/get-list-task-user?UserID=${user.id}`)
-    .then(res=>{
-        res = res.data
-        setTask(res.data||[])
-    })
-  },[])
+  const confirmDueDate = () => {
+    const updatedTasks = [...tasks];
+    const formattedDate = moment(selectedDueDate)
+      .tz('Asia/Ho_Chi_Minh')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    updatedTasks[currentIndex].dueDate = formattedDate;
+    setTasks(updatedTasks);
+    setShowDuePicker(false);
+  };
+
+  const addTask = () => {
+    setTasks([
+      ...tasks,
+      {
+        assignedToUserID: user.id,
+        title: '',
+        description: '',
+        createDate: new Date(),
+        dueDate: new Date(),
+      },
+    ]);
+    setCurrentIndex(tasks.length);
+  };
+
+  const SaveTask = () => {
+    const dataToSend = tasks.map(task => ({
+      assignedToUserID: task.assignedToUserID,
+      title: task.title,
+      description: task.description,
+      createDate: task.createDate,
+      dueDate: task.dueDate,
+    }));
+
+    axiosInstance
+      .post('/import-task-user', dataToSend)
+      .then(res => {
+        if (res.data.code === 200) {
+          Toast.show({
+            type: 'success',
+            text1: 'Đã thêm thành công',
+            visibilityTime: 2000,
+            onHide: () => {
+              navigation.navigate('TaskUserList', {user});
+            },
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: res.message,
+            text2: res.data,
+            text2Style: {
+              fontWeight: '700',
+              color: 'black',
+            },
+            visibilityTime: 3000,
+          });
+        }
+      })
+      .catch(err => {
+        Toast.show({
+          type: 'error',
+          text1: 'Xảy ra lỗi',
+          text2: 'Vui lòng thử lại',
+          text2Style: {
+            fontWeight: '700',
+            color: 'black',
+          },
+          visibilityTime: 3000,
+        });
+      });
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.userInfoContainer}>
-        {user ? (
-          <>
-            <Text style={styles.userInfoText}>Tên: {user.fullName}</Text>
-            <Text style={styles.userInfoText}>Tài khoản: {user.userName}</Text>
-            <Text style={styles.userInfoText}>Kpi: {user.kpiUser}</Text>
-          </>
-        ) : (
-          <Text style={styles.userInfoText}>
-            Không có thông tin người dùng.
+    <View style={styles.containerMain}>
+      <LinearGradient colors={['#6A00F4', '#AE47F1']} style={styles.header}>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>
+            Thêm nhiệm vụ cho {user.fullName}
           </Text>
-        )}
-      </View>
-      {list_task &&
-        list_task.map((item, index) => {
-          return (
-            <View key={index} style={{backgroundColor:Theme.accent}}>
-              <View style={styles.userInfoContainer}>
-                <Text>Chọn giờ bắt đầu</Text>
-                <View style={styles.timePickerContainer}>
-                  <SelectList
-                    setSelected={setStartHour}
-                    data={hoursData}
-                    save="value"
-                    placeholder="Giờ"
-                    boxStyles={styles.selectListBox}
-                  />
-                  <SelectList
-                    setSelected={setStartMinute}
-                    data={minutesData}
-                    save="value"
-                    placeholder="Phút"
-                    boxStyles={styles.selectListBox}
-                  />
-                </View>
-                {startHour && startMinute && (
-                  <Text style={styles.selectedText}>
-                    Giờ bắt đầu: {startHour}:{startMinute}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.userInfoContainer}>
-                <Text>Chọn giờ kết thúc</Text>
-                <View style={styles.timePickerContainer}>
-                  <SelectList
-                    setSelected={setEndHour}
-                    data={hoursData}
-                    save="value"
-                    placeholder="Giờ"
-                    boxStyles={styles.selectListBox}
-                  />
-                  <SelectList
-                    setSelected={setEndMinute}
-                    data={minutesData}
-                    save="value"
-                    placeholder="Phút"
-                    boxStyles={styles.selectListBox}
-                  />
-                </View>
-                {endHour && endMinute && (
-                  <Text style={styles.selectedText}>
-                    Giờ kết thúc: {endHour}:{endMinute}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.taskContainer}>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Tên task</Text>
-                  <TextInput style={styles.input} placeholder="Nhập tên task" />
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Mô tả, hướng dẫn</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nhập mô tả hoặc hướng dẫn"
-                    multiline
-                    numberOfLines={4}
-                  />
-                </View>
-              </View>
-
-            </View>
-          );
-        })}
-
-      <View>
-        <Button onPress={addTask} title="Them task"></Button>
-        <Button onPress={SaveTask} title='Luus'></Button>
-      </View>
-
-        <View>
-            <Text>Task dang co</Text>
-            <View>
-                {
-                    tasks && tasks.map((item, index)=>{
-                        return <View key={index}>
-                            <Text>{{item}}</Text>
-                        </View>
-                    })
-                }
-            </View>
         </View>
+        <View style={styles.inputContainerHeader}>
+          <Text style={styles.labelHeader}>Tiêu đề</Text>
+          <TextInput
+            style={styles.inputHeader}
+            placeholder="Nhập tiêu đề"
+            placeholderTextColor="#FFFFFF"
+            value={tasks[currentIndex].title}
+            onChangeText={text => {
+              const updatedTasks = [...tasks];
+              updatedTasks[currentIndex].title = text;
+              setTasks(updatedTasks);
+            }}
+          />
+        </View>
+      </LinearGradient>
 
-    </ScrollView>
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* <Text style={styles.headerText}></Text> */}
+
+        {/* <View style={styles.inputContainer}>
+        <Text style={styles.label}>Tiêu đề:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Nhập tiêu đề"
+          value={tasks[currentIndex].title}
+          onChangeText={text => {
+            const updatedTasks = [...tasks];
+            updatedTasks[currentIndex].title = text;
+            setTasks(updatedTasks);
+          }}
+        />
+      </View> */}
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Mô tả:</Text>
+          <TextInput
+            style={[styles.input, styles.multilineInput]}
+            placeholder="Nhập mô tả"
+            value={tasks[currentIndex].description}
+            multiline={true}
+            onChangeText={text => {
+              const updatedTasks = [...tasks];
+              updatedTasks[currentIndex].description = text;
+              setTasks(updatedTasks);
+            }}
+          />
+        </View>
+        <View style={styles.rowContainer}>
+          <View style={styles.inputContainer}>
+            <Text style={[styles.labelMore]}>Ngày tạo</Text>
+            <TextInput
+              style={[styles.inputMore]}
+              placeholder="Chọn ngày tạo"
+              value={moment(tasks[currentIndex].createDate)
+                .tz('Asia/Ho_Chi_Minh')
+                .format('HH:mm DD-MM-YYYY')}
+              editable={false}
+              onPressIn={() => setShowCreatePicker(true)}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={[styles.labelMore]}>Ngày hết hạn</Text>
+            <TextInput
+              style={[styles.inputMore]}
+              placeholder="Chọn ngày hết hạn"
+              value={moment(tasks[currentIndex].dueDate)
+                .tz('Asia/Ho_Chi_Minh')
+                .format('HH:mm DD-MM-YYYY')}
+              editable={false}
+              onPressIn={() => setShowDuePicker(true)}
+            />
+          </View>
+        </View>
+        {/* <View style={styles.inputContainer}>
+        <Text style={styles.label}>Ngày tạo:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Chọn ngày tạo"
+          value={moment(tasks[currentIndex].createDate).tz('Asia/Ho_Chi_Minh').format('HH:mm DD-MM-YYYY')}
+          editable={false}
+          onPressIn={() => setShowCreatePicker(true)}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Ngày hết hạn:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Chọn ngày hết hạn"
+          value={moment(tasks[currentIndex].dueDate).tz('Asia/Ho_Chi_Minh').format('HH:mm DD-MM-YYYY')}
+          editable={false}
+          onPressIn={() => setShowDuePicker(true)}
+        />
+      </View> */}
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, currentIndex === 0 && styles.buttonDisabled]}
+            onPress={() => setCurrentIndex(prev => Math.max(prev - 1, 0))}
+            disabled={currentIndex === 0}>
+            <Text style={styles.buttonText}>Trước</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={addTask}>
+            <Text style={styles.buttonText}>Thêm</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              currentIndex === tasks.length - 1 && styles.buttonDisabled,
+            ]}
+            onPress={() =>
+              setCurrentIndex(prev => Math.min(prev + 1, tasks.length - 1))
+            }
+            disabled={currentIndex === tasks.length - 1}>
+            <Text style={styles.buttonText}>Sau</Text>
+          </TouchableOpacity>
+        </View>
+        <LinearGradient
+          colors={['#6A00F4', '#AE47F1']}
+          style={styles.saveButton}>
+          <TouchableOpacity onPress={SaveTask}>
+            <Text style={styles.buttonTextMain}>Lưu Task</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {showCreatePicker && (
+          <Modal
+            transparent={true}
+            visible={showCreatePicker}
+            animationType="slide">
+            <View style={styles.modalContainer}>
+              <DateTimePicker
+                value={selectedCreateDate}
+                mode="datetime"
+                display="spinner"
+                onChange={onCreateDateChange}
+                locale="vi"
+                textColor={'#000000'}
+              />
+              <Button title="Xác nhận" onPress={confirmCreateDate} />
+            </View>
+          </Modal>
+        )}
+
+        {showDuePicker && (
+          <Modal
+            transparent={true}
+            visible={showDuePicker}
+            animationType="slide">
+            <View style={styles.modalContainer}>
+              <DateTimePicker
+                value={selectedDueDate}
+                mode="datetime"
+                display="spinner"
+                onChange={onDueDateChange}
+                locale="vi"
+                textColor={'#000000'}
+                
+              />
+              <Button title="Xác nhận" onPress={confirmDueDate} />
+            </View>
+          </Modal>
+        )}
+        <Toast />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.primary,
+  containerMain: {},
+  header: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  userInfoContainer: {
-    padding: 20,
-    margin: 20,
-    borderRadius: 10,
-    backgroundColor: '#f0f0f0',
-    width: '100%',
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.5,
-    elevation: 5,
-  },
-  userInfoText: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  timePickerContainer: {
+  headerTop: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
-    gap: 40,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  selectListBox: {
-    flex: 1,
-    marginRight: 10,
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
-  selectedText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: 'green',
+  container: {
+    padding: 20,
   },
-  containerTask: {
-    margin: 20,
-  },
-  taskContainer: {
-    flex: 1,
-    margin:20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#f9f9f9', // Light background for the container
+  headerText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   inputContainer: {
-    marginBottom: 20, // Spacing between input fields
+    marginBottom: 20,
   },
-  inputLabel: {
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BFC8E8',
+    marginBottom: 16,
+  },
+  label: {
     fontSize: 16,
-    fontWeight: 'bold',
     marginBottom: 5,
-    color: '#333', // Darker text color for better readability
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+    height: 40,
     borderColor: '#ccc',
-    borderWidth: 1, // Light border for input fields
+    borderWidth: 1,
+    paddingLeft: 8,
+    borderRadius: 5,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  button: {
+    flex: 1,
+    marginHorizontal: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#007bff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3, // Bóng đổ cho Android
+    shadowColor: '#000', // Bóng đổ cho iOS
+    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
+    shadowOpacity: 0.3, // Độ mờ của bóng
+    shadowRadius: 4, // Bán kính mờ của bóng
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#aaa', // Màu khi nút bị vô hiệu hóa
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 1)',
+  },
+  multilineInput: {
+    height: 100,
+  },
+  saveButton: {
+    backgroundColor: '#6A00F4',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2, // Slight elevation for a modern effect
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    marginTop: 16,
   },
+  buttonTextMain: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  inputContainerHeader: {
+    marginTop: 16,
+  },
+  labelHeader: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  inputHeader: {
+    height: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D7DDF0',
+    color: '#FFFFFF',
+    paddingHorizontal: 0,
+    marginVertical: 4,
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  inputMore: {
+    fontSize: 16,
+    fontWeight: '600',
+
+  },
+  labelMore:{
+    fontSize: 12,
+    marginBottom: 5,
+
+  }
 });
 
 export default ImportTask;

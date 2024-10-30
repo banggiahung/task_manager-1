@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "allowJs": true,               // Cho phép JavaScript trong dự án
-    "checkJs": false,              // Không kiểm tra lỗi trong các tệp JavaScript
-    "jsx": "react-native",         // Nếu bạn sử dụng JSX với React Native
-    "noEmit": true,                // Ngăn việc TypeScript biên dịch tệp .js và .ts
-    "skipLibCheck": true           // Bỏ qua kiểm tra thư viện
+    "allowJs": true,             
+    "checkJs": false,            
+    "jsx": "react-native",        
+    "noEmit": true,                
+    "skipLibCheck": true           
   },
   "exclude": ["node_modules"]
 }

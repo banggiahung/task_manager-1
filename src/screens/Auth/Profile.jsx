@@ -1,8 +1,9 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, Image, StyleSheet, Button} from 'react-native';
+import {View, Text, Image, StyleSheet, Button,TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Theme from '../../configs/color';
 import { useNavigation } from '@react-navigation/native';
+import {clearData} from '../../configs/asyncStorage';
 
 function Profile() {
   const [userData, setUserData] = useState({
@@ -14,9 +15,10 @@ function Profile() {
 
   const navigation = useNavigation()
 
-  const handleLogOut = ()=>{
-    navigation.navigate("Login")
-  }
+  const handleLogOut = async () => {
+    await clearData();  
+    navigation.navigate("Login");  
+  };
 
   useEffect(() => {}, []);
 
@@ -36,10 +38,12 @@ function Profile() {
           <Text style={styles.label}>Vai trò:</Text>
           <Text style={styles.value}>{userData.role}</Text>
         </View>
-
-        <View>
-          <Button onPress={handleLogOut} title="Dang xuat"></Button>
-        </View>
+        <View style={styles.containerButton}>
+            <TouchableOpacity style={styles.button} onPress={handleLogOut}>
+              <Text style={styles.buttonText}>Đăng xuất</Text>
+            </TouchableOpacity>
+          </View>
+        
       </View>
     </SafeAreaView>
   );
@@ -88,6 +92,30 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     color: '#666',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  button: {
+    padding: 12,
+    marginHorizontal: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#007bff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3, // Bóng đổ cho Android
+    shadowColor: '#000', // Bóng đổ cho iOS
+    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
+    shadowOpacity: 0.3, // Độ mờ của bóng
+    shadowRadius: 4, // Bán kính mờ của bóng
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

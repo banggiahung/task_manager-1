@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,52 +6,39 @@ import {
   StyleSheet,
   TextInput,
   Button,
+  FlatList,
   Dimensions,
   TouchableOpacity
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Header from '../../components/Header';
 import axiosInstance from '../../configs/axios';
-import moment from 'moment'; // Import moment
 
-const {height} = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
-export default function FormTask() {
+export default function EditTaskTongQuan() {
   const initData = [];
 
-  // Create task data for the week
   for (let i = 1; i < 8; i++) {
-    const dayOfWeek = moment().add(i, 'days').format('dddd');
-    let title;
-
-    if (i === 6) {
-        title = 'Thứ 7'; // For Saturday
-    } else if (i === 7) {
-        title = 'Chủ Nhật'; // For Sunday
-    } else {
-        title = `Thứ ${i + 1}`; // For other days (Monday to Friday)
-    }
-
     initData.push({
-        taskIDTongQuanTuan: i + 1,
-        title: title,
-        description: '',
-        datetimeTask: moment().add(i, 'days').toISOString(), // ISO format of the date
+      taskIDTongQuanTuan: i,
+      title: `Thu ${i + 1}`,
+      description: `Description for Task ${i}`,
+      datetimeTask: new Date(Date.now() + i * 86400000).toISOString(),
     });
-}
-
+  }
 
   const param = useRoute();
   const data = param.params;
-  const [data_task, setDataTask] = useState(data ? data : initData);
+  const [data_task, setDataTask] = useState(data ? data.tasks : initData);
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleForm = value => {
+  const handleForm = (value) => {
     const updatedTasks = data_task.map((task, idx) => {
       if (idx === currentIndex) {
-        return {...task, description: value};
+        return { ...task, description: value };
       }
       return task;
     });
@@ -59,15 +46,16 @@ export default function FormTask() {
   };
 
   const post_data = () => {
-    const formattedTasks = data_task.map(task => ({
+    const formattedTasks = data_task.map((task) => ({
       ...task,
       description: `<pre>${task.description}</pre>`,
     }));
-
+    console.log(formattedTasks);
     axiosInstance
-      .post('/import-task-tong-quan', formattedTasks)
-      .then(res => {
-        res = res.data;
+      .post('/edit-task-tong-quan', formattedTasks)
+      .then((res) => {
+       
+
         if (res.code === 400) {
           Toast.show({
             type: 'error',
@@ -86,7 +74,7 @@ export default function FormTask() {
           });
         }
       })
-      .catch(err => {
+      .catch((err) => {
         Toast.show({
           type: 'error',
           text1: 'Thất bại',
@@ -99,7 +87,8 @@ export default function FormTask() {
         });
       })
       .finally(() => {
-        navigation.navigate('Main', {screen: 'ListTask'});
+        navigation.navigate("Main", { screen: "ListTask" });
+
       });
   };
 
@@ -116,12 +105,27 @@ export default function FormTask() {
           style={[styles.input, styles.multilineInput]}
           multiline={true}
           onChangeText={handleForm}
-          value={currentTask.description}
+          value={currentTask.description.replace(/<\/?pre>/g, '')} 
           placeholder="Nhập nội dung ở đây..."
         />
       </View>
     );
   };
+  // const renderItem = ({ item }) => (
+  //   <View style={styles.taskItem}>
+  //     <Text style={styles.dateText}>{item.title}</Text>
+  //     <TextInput
+  //       style={styles.textInput}
+  //       multiline
+  //       onChangeText={handleForm}
+  //       value={item.description.replace(/<\/?pre>/g, '')} 
+  //       numberOfLines={5}
+  //       textAlignVertical="top"
+  //       placeholder="Nhập nội dung ở đây..."
+  //     />
+  //   </View>
+  // );
+  
 
   const handleNext = () => {
     if (currentIndex < data_task.length - 1) {
@@ -134,10 +138,8 @@ export default function FormTask() {
       setCurrentIndex(currentIndex - 1);
     }
   };
-
   return (
     <SafeAreaView style={styles.container}>
-      <Header />
       <View style={styles.containerTask}>{renderItem()}</View>
 
       <View style={styles.containerButton}>
@@ -162,6 +164,39 @@ export default function FormTask() {
       <Toast />
     </SafeAreaView>
   );
+  // return (
+  //   <SafeAreaView style={styles.container}>
+  //     <Header />
+  //     <View style={styles.containerTask}>
+  //       <FlatList
+  //         data={[data_task[currentIndex]]} 
+  //         renderItem={renderItem}
+  //         keyExtractor={(item) => item.taskIDTongQuanTuan.toString()}
+  //         horizontal
+  //         showsHorizontalScrollIndicator={false}
+  //         pagingEnabled
+  //       />
+  //     </View>
+
+  //     <View style={styles.containerButton}>
+  //       <Button
+  //         title="Truoc"
+  //         onPress={handleBack}
+  //         disabled={currentIndex === 0}
+  //       />
+  //       {currentIndex === data_task.length - 1 ? (
+  //         <Button title="Hoàn thành" onPress={post_data} />
+  //       ) : (
+  //         <Button
+  //           title="Sau"
+  //           onPress={handleNext}
+  //           disabled={currentIndex === data_task.length - 1}
+  //         />
+  //       )}
+  //     </View>
+  //     <Toast />
+  //   </SafeAreaView>
+  // );
 }
 
 const styles = StyleSheet.create({
@@ -207,11 +242,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, // Bóng đổ cho Android
-    shadowColor: '#000', // Bóng đổ cho iOS
-    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
-    shadowOpacity: 0.3, // Độ mờ của bóng
-    shadowRadius: 4, // Bán kính mờ của bóng
+    elevation: 3, 
+    shadowColor: '#000', 
+    shadowOffset: {width: 0, height: 2}, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
   },
   saveButton: {
     flex: 1,
@@ -221,11 +256,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, // Bóng đổ cho Android
-    shadowColor: '#000', // Bóng đổ cho iOS
-    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
-    shadowOpacity: 0.3, // Độ mờ của bóng
-    shadowRadius: 4, // Bán kính mờ của bóng
+    elevation: 3, 
+    shadowColor: '#000', 
+    shadowOffset: {width: 0, height: 2}, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
   },
   buttonText: {
     color: 'white',

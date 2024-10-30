@@ -6,7 +6,6 @@ function Header({title}) {
 
     const navigation = useNavigation()
     const handleNavigate = ()=>{
-        console.log("da click vao day")
         navigation.navigate("Profile")
     }
 
@@ -34,6 +33,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 8
   },
   title: {
     fontSize: 24,

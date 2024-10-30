@@ -7,13 +7,14 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation,useFocusEffect} from '@react-navigation/native';
 import moment from 'moment';
 import axiosInstance from '../../configs/axios';
 import DayItem from '../../components/DayItem';
 import Header from '../../components/Header';
 import UserItem from '../../components/UserItem';
 import Theme from '../../configs/color';
+import {getData} from '../../configs/asyncStorage';
 
 function Dashboard() {
   const [list_user, setListUser] = useState([]);
@@ -33,32 +34,54 @@ function Dashboard() {
   };
 
   const ImportTaskUser = user => {
-    navigation.navigate('ImportTask', {user});
-  };
+    // navigation.navigate('ImportTask', {user});
+     navigation.navigate('TaskUserList', {user});
 
-  useEffect(() => {
-    try {
-      axiosInstance.get('/get-list-user').then(res => {
-        const data = res.data;
-        if (data.code !== 200) {
-          return;
-        }
-        setListUser(data.data);
-      });
-    } catch (error) {
-      console.log(error);
+  };
+  const handlePress = async () => {
+    const role = await getData('role');
+    if(role){
+      if (role.includes('Admin')) {
+        navigation.navigate('Home');
+
+      } else {
+        return;
+      }
+
     }
-  }, []);
+    return;
+
+  }
+  useFocusEffect(
+    React.useCallback(() => {
+      try {
+        axiosInstance.get('/get-list-user').then(res => {
+          const data = res.data;
+          if (data.code !== 200) {
+            return;
+          }
+          setListUser(data.data);
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    }, []) // Chạy chỉ một lần khi component mount
+  );
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
-        <Header title={'Dashboard'} />
+      <TouchableOpacity onPress={handlePress} style={styles.headerContainer}>
+      <Header title={`Tháng ${currentMon}`} />
+
+    </TouchableOpacity>
+
         <View>
           <View style={styles.monthContainer}>
-            <View style={styles.dateContainer}>
+            {/* <View style={styles.dateContainer}>
               <Text style={styles.monthText}>Tháng {currentMon}</Text>
-            </View>
+            </View> */}
             <ScrollView
               horizontal={true}
               showsHorizontalScrollIndicator={false}>
@@ -69,9 +92,10 @@ function Dashboard() {
           </View>
           <View style={styles.userListContainer}>
             <View style={styles.userListHeader}>
-              <Text style={styles.userListTitle}>Danh sách nhân viên</Text>
+              <Text style={styles.userListTitle}>Danh sách nhân viên
+              </Text>
               <TouchableOpacity style={styles.addButton} onPress={MoveAddTask}>
-                <Text style={styles.addButtonText}>Thêm task</Text>
+                <Text style={styles.addButtonText}>Task tổng quan</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.userList}>
@@ -92,12 +116,14 @@ function Dashboard() {
 }
 
 const styles = StyleSheet.create({
+  
   safeArea: {
     flex: 1,
   },
   scrollView: {
     width: '100%',
-    padding: 16,
+    paddingRight: 16,
+    paddingLeft: 16,
   },
   monthContainer: {
     width: '100%',

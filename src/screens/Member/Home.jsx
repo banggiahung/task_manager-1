@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {storeData, getData} from '../../configs/asyncStorage';
 import Header from '../../components/Header';
 import TaskItem from '../../components/TaskItem.jsx';
 import Theme from '../../configs/color';
+import moment from 'moment';
+import * as FeatherIcons from 'react-native-feather';
 
 function Home() {
   const [userId, setUserId] = useState(null);
@@ -22,47 +24,78 @@ function Home() {
   const [selected, setSelected] = useState(0);
   const [totalTask, setTotalTask] = useState();
   const [task_user, setTaskUser] = useState([]);
+  const scrollViewRef = useRef(null);
+  const getWeekOfMonth = () => {
+    const weekOfMonth = moment().isoWeek();
+    const startOfMonth = moment().startOf('month').isoWeek();
+    return weekOfMonth - startOfMonth + 1;
+  };
 
+  const weekNumber = getWeekOfMonth();
+  const monthName = moment().format('MMMM');
+  const monthNumber = moment().month() + 1;
   const fetchData = async () => {
     const storedUserId = await getData('userId');
     setUserId(storedUserId);
   };
 
-  useEffect(() => {
-    fetchData();
-
-    axiosInstance.get(`/tasks-for-week`).then(res => {
+  const fetchTaskTongQuan = async () => {
+    await axiosInstance.get(`/tasks-for-week`).then(res => {
       console.log(res.data.data);
       setTotalTask(res.data.data);
+      if (scrollViewRef.current) {
+        const todayTaskIndex = totalTask.findIndex(item =>
+          moment().isSame(moment(item.datetimeTask), 'day'),
+        );
+
+        if (todayTaskIndex !== -1) {
+          scrollViewRef.current.scrollTo({
+            y: todayTaskIndex * 100,
+            animated: true,
+          });
+        }
+      }
     });
+  };
+  const fetchTaskUser = async () => {
+    // if (userId) {
+    //   await axiosInstance
+    //     .get(`/get-list-task-user?UserID=${userId}`)
+    //     .then(res => {
+    //       console.log(res.data.data);
+    //       setTotalTask(res.data.data);
+    //     });
+    // }
+    navigation.navigate('ListTaskByUser', { userId: userId });
 
-    if (userId) {
-      axiosInstance.get(`/get-list-task-user?UserID=${userId}`).then(res => {
-        console.log(res.data.data);
-        setTotalTask(res.data.data);
-      });
-    }
+
+  };
+  useEffect(() => {
+    fetchData();
+    fetchTaskTongQuan();
   }, []);
-
+  const handlePress = () => {
+    navigation.navigate('Main', {screen: 'Dashboard'});
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.scrollView}>
-        <Header title={''} />
+        <TouchableOpacity onPress={handlePress} style={styles.headerContainer}>
+          <Header title={`Tuần ${weekNumber} tháng ${monthNumber}`} />
+        </TouchableOpacity>
 
-        <View style={styles.overviewContainer}>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Tổng quan</Text>
-            </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={fetchTaskTongQuan}>
+            <Text style={styles.buttonText}>Tổng quan</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Task hôm nay</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.button} onPress={fetchTaskUser}>
+            <Text style={styles.buttonText}>Task hôm nay</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.container}>
-          <ScrollView style={styles.taskContainer}>
+          <ScrollView ref={scrollViewRef} style={styles.taskContainer}>
             {totalTask &&
               totalTask.map((item, index) => (
                 <TaskItem task={item} key={index} />
@@ -86,20 +119,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  overviewContainer: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    shadowColor: 'black',
-    shadowOpacity: 0.2,
-    padding: 16,
-    marginBottom:20
-  },
+
   buttonContainer: {
+    justifyContent: 'center',
     flexDirection: 'row',
     gap: 16,
+    marginBottom: 12,
   },
   button: {
     backgroundColor: '#1E90FF',
@@ -112,7 +137,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   container: {
-    width: '100%',
     minHeight: 800,
     padding: 16,
     borderRadius: 40,
@@ -120,14 +144,13 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.primary,
   },
   taskContainer: {
-    flexDirection: 'row',
     gap: 16,
     marginTop: 16,
     padding: 8,
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    margin: 'auto',
+    width: '100%',
   },
 });
 

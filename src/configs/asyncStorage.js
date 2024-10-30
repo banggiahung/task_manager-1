@@ -3,11 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const storeData = async (key, value) => {
     try {
-        await AsyncStorage.setItem(key, value);
+      await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
-        console.error(e);
+      console.error('Lỗi khi lưu dữ liệu:', e);
     }
-};
+  };
 
 const getData = async (key) => {
     try {
@@ -22,6 +22,16 @@ const getData = async (key) => {
         console.error(e);
     }
 };
+const clearData = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
+      await AsyncStorage.removeItem('userId');
+      await AsyncStorage.removeItem('role');
+      console.log('Data cleared successfully.');
+    } catch (e) {
+      console.error('Error clearing data: ', e);
+    }
+  };
 
-
-export { storeData, getData };
+export { storeData, getData,clearData };

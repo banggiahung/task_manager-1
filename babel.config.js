@@ -4,6 +4,8 @@ module.exports = {
     '@babel/preset-typescript'     // Hỗ trợ TypeScript (nhưng sẽ không cần khi code JS)
   ],
   plugins: [
-    "react-native-reanimated/plugin"
+    "react-native-reanimated/plugin",
+    'tailwindcss-react-native/babel'
   ],
+
 };

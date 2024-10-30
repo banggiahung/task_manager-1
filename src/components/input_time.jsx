@@ -28,6 +28,8 @@ const TimePickerExample = () => {
           mode="time" // Chỉ chọn thời gian (không chọn ngày)
           display="default" // Giao diện picker (default, spinner, clock)
           onChange={onChange} // Xử lý khi chọn xong
+          textColor={'#000000'}
+          
         />
       )}
 
