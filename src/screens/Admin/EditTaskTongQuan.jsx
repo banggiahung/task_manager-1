@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,15 @@ import {
   Button,
   FlatList,
   Dimensions,
-  TouchableOpacity
+  TouchableOpacity,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import Header from '../../components/Header';
 import axiosInstance from '../../configs/axios';
 
-const { height } = Dimensions.get('window');
+const {height} = Dimensions.get('window');
 
 export default function EditTaskTongQuan() {
   const initData = [];
@@ -35,10 +36,10 @@ export default function EditTaskTongQuan() {
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleForm = (value) => {
+  const handleForm = value => {
     const updatedTasks = data_task.map((task, idx) => {
       if (idx === currentIndex) {
-        return { ...task, description: value };
+        return {...task, description: value};
       }
       return task;
     });
@@ -46,16 +47,14 @@ export default function EditTaskTongQuan() {
   };
 
   const post_data = () => {
-    const formattedTasks = data_task.map((task) => ({
+    const formattedTasks = data_task.map(task => ({
       ...task,
       description: `<pre>${task.description}</pre>`,
     }));
     console.log(formattedTasks);
     axiosInstance
       .post('/edit-task-tong-quan', formattedTasks)
-      .then((res) => {
-       
-
+      .then(res => {
         if (res.code === 400) {
           Toast.show({
             type: 'error',
@@ -74,7 +73,7 @@ export default function EditTaskTongQuan() {
           });
         }
       })
-      .catch((err) => {
+      .catch(err => {
         Toast.show({
           type: 'error',
           text1: 'Thất bại',
@@ -87,8 +86,7 @@ export default function EditTaskTongQuan() {
         });
       })
       .finally(() => {
-        navigation.navigate("Main", { screen: "ListTask" });
-
+        navigation.navigate('Main', {screen: 'ListTask'});
       });
   };
 
@@ -99,16 +97,18 @@ export default function EditTaskTongQuan() {
   const renderItem = () => {
     const currentTask = data_task[currentIndex];
     return (
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>{currentTask.title}</Text>
-        <TextInput
-          style={[styles.input, styles.multilineInput]}
-          multiline={true}
-          onChangeText={handleForm}
-          value={currentTask.description.replace(/<\/?pre>/g, '')} 
-          placeholder="Nhập nội dung ở đây..."
-        />
-      </View>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>{currentTask.title}</Text>
+          <TextInput
+            style={[styles.input, styles.multilineInput]}
+            multiline={true}
+            onChangeText={handleForm}
+            value={currentTask.description.replace(/<\/?pre>/g, '')}
+            placeholder="Nhập nội dung ở đây..."
+          />
+        </View>
+      </TouchableWithoutFeedback>
     );
   };
   // const renderItem = ({ item }) => (
@@ -118,14 +118,13 @@ export default function EditTaskTongQuan() {
   //       style={styles.textInput}
   //       multiline
   //       onChangeText={handleForm}
-  //       value={item.description.replace(/<\/?pre>/g, '')} 
+  //       value={item.description.replace(/<\/?pre>/g, '')}
   //       numberOfLines={5}
   //       textAlignVertical="top"
   //       placeholder="Nhập nội dung ở đây..."
   //     />
   //   </View>
   // );
-  
 
   const handleNext = () => {
     if (currentIndex < data_task.length - 1) {
@@ -169,7 +168,7 @@ export default function EditTaskTongQuan() {
   //     <Header />
   //     <View style={styles.containerTask}>
   //       <FlatList
-  //         data={[data_task[currentIndex]]} 
+  //         data={[data_task[currentIndex]]}
   //         renderItem={renderItem}
   //         keyExtractor={(item) => item.taskIDTongQuanTuan.toString()}
   //         horizontal
@@ -242,11 +241,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, 
-    shadowColor: '#000', 
-    shadowOffset: {width: 0, height: 2}, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   saveButton: {
     flex: 1,
@@ -256,11 +255,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, 
-    shadowColor: '#000', 
-    shadowOffset: {width: 0, height: 2}, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   buttonText: {
     color: 'white',
