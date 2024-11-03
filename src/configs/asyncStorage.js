@@ -28,6 +28,10 @@ const clearData = async () => {
       await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('userId');
       await AsyncStorage.removeItem('role');
+      await AsyncStorage.removeItem('avatar');
+      await AsyncStorage.removeItem('fullName');
+      await AsyncStorage.removeItem('fcm');
+      
       console.log('Data cleared successfully.');
     } catch (e) {
       console.error('Error clearing data: ', e);

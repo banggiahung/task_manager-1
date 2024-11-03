@@ -7,7 +7,8 @@ import {
   TextInput,
   Button,
   Dimensions,
-  TouchableOpacity
+  TouchableOpacity,
+  TouchableWithoutFeedback
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -110,6 +111,8 @@ export default function FormTask() {
   const renderItem = () => {
     const currentTask = data_task[currentIndex];
     return (
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+
       <View style={styles.inputContainer}>
         <Text style={styles.label}>{currentTask.title}</Text>
         <TextInput
@@ -120,6 +123,8 @@ export default function FormTask() {
           placeholder="Nhập nội dung ở đây..."
         />
       </View>
+      </TouchableWithoutFeedback>
+
     );
   };
 
@@ -207,11 +212,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, // Bóng đổ cho Android
-    shadowColor: '#000', // Bóng đổ cho iOS
-    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
-    shadowOpacity: 0.3, // Độ mờ của bóng
-    shadowRadius: 4, // Bán kính mờ của bóng
+    elevation: 3, 
+    shadowColor: '#000', 
+    shadowOffset: {width: 0, height: 2}, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
   },
   saveButton: {
     flex: 1,
@@ -221,11 +226,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, // Bóng đổ cho Android
-    shadowColor: '#000', // Bóng đổ cho iOS
-    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
-    shadowOpacity: 0.3, // Độ mờ của bóng
-    shadowRadius: 4, // Bán kính mờ của bóng
+    elevation: 3, 
+    shadowColor: '#000', 
+    shadowOffset: {width: 0, height: 2}, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
   },
   buttonText: {
     color: 'white',

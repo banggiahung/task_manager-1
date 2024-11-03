@@ -8,7 +8,8 @@ import {
   FlatList,
   Modal,
   TouchableOpacity,
-  TextInput
+  TextInput,
+  TouchableWithoutFeedback
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -35,6 +36,8 @@ function TaskDetail() {
   const [selectedCreateDate, setSelectedCreateDate] = useState(tasks[0].createDate);
   const [selectedDueDate, setSelectedDueDate] = useState(tasks[0].dueDate);
 
+  const [clickCreateDate, setClickCreateDate] = useState(false);
+  const [clickDueDate, setClickDueDate] = useState(false);
   const onCreateDateChange = (event, date) => {
     setSelectedCreateDate(date || selectedCreateDate);
   };
@@ -51,7 +54,7 @@ function TaskDetail() {
 
     updatedTasks[currentIndex].createDate = formattedDate; // Lưu dưới dạng chuỗi ISO
     setTasks(updatedTasks);
-
+    setClickCreateDate(true);
     setShowCreatePicker(false);
 };
 
@@ -66,6 +69,7 @@ function TaskDetail() {
      // Cập nhật giá trị createDate trong tasks
     updatedTasks[currentIndex].dueDate = formattedDate;
     setTasks(updatedTasks);
+    setClickDueDate(true);
     setShowDuePicker(false);
   };
   const GoToTaskList = () => {
@@ -86,17 +90,18 @@ function TaskDetail() {
     
     const dataToSend = tasks.map(task => {
         // Tạo Date mới từ selectedCreateDate để giữ nguyên múi giờ
-       
-        console.log(task.createDate)
-        console.log(task.dueDate)
+        const createDateMain = moment(task.createDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        const dueDateMain = moment(task.dueDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        
+        
     
         return {
           taskID: task.taskID,
           assignedToUserID: task.assignedToUserID,
           title: task.title,
           description: task.description,
-          createDate: task.createDate, 
-          dueDate: task.dueDate, 
+          createDate: createDateMain, 
+          dueDate: dueDateMain, 
         };
       });
     
@@ -142,6 +147,8 @@ function TaskDetail() {
   };
   return (
     <View style={styles.container}>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Tiêu đề:</Text>
         <TextInput
@@ -155,6 +162,8 @@ function TaskDetail() {
           }}
         />
       </View>
+</TouchableWithoutFeedback>
+<TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Mô tả:</Text>
@@ -170,6 +179,7 @@ function TaskDetail() {
           }}
         />
       </View>
+      </TouchableWithoutFeedback>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Ngày tạo:</Text>

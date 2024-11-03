@@ -41,10 +41,8 @@ export default function ConfirmTask() {
     }
   };
   const confirmDueDate = () => {
-    const formattedDate = moment(selectedDueDate)
-      .tz('Asia/Ho_Chi_Minh')
-      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-    setSelectedDueDate(formattedDate);
+    
+    setSelectedDueDate(selectedDueDate);
     setShowDuePicker(false);
   };
   const [taskData, setTaskData] = useState(null);
@@ -54,7 +52,13 @@ export default function ConfirmTask() {
       const response = await axiosInstance.post(url);
 
       if (response.data.code == 200) {
-        setTaskData(response.data.data);
+        const newTaskData = response.data.data;
+        setTaskData(newTaskData);
+        console.log(newTaskData.taskHistory);
+
+        if (newTaskData.taskHistory != null) {
+          setLinkTask(newTaskData.taskHistory.linkHoanThanh);
+        }
       }
     } catch (error) {
       console.log(error.message);
@@ -70,12 +74,44 @@ export default function ConfirmTask() {
     setShowConfirmButton(false);
   };
   const handleConfirmRoiLich = async () => {
-    const stringConfirm = "Rời lịch";
-    if(reason == null || reason == ""){
-        Toast.show({
+
+    const stringConfirm = 'Rời lịch';
+    if (reason == null || reason == '') {
+      Toast.show({
+        type: 'error',
+        text1: 'Nhập lý do',
+        text2: 'Vui lòng nhập lý do',
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+      return;
+    }
+    const formattedDate = moment(selectedDueDate)
+      .tz('Asia/Ho_Chi_Minh')
+      .format('YYYY-MM-DDTHH:mm');
+    const url = `/hoan-thanh-task?type=${encodeURIComponent(stringConfirm)}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(taskID)}&dueDate=${encodeURIComponent(formattedDate)}&lyDo=${encodeURIComponent(reason)}`;
+    console.log(url)
+
+    axiosInstance
+      .post(url)
+      .then(response => {
+        if (response.data.code === 200) {
+          Toast.show({
+            type: 'success',
+            text1: 'Đã cập nhập trạng thái "rời lịch" ',
+            visibilityTime: 2000,
+            onHide: () => {
+              fetchData();
+            },
+          });
+        } else {
+          Toast.show({
             type: 'error',
-            text1: "Nhập lý do",
-            text2: "Vui lòng nhập lý do",
+            text1: response.data.message,
+            text2: response.data.data,
             text2Style: {
               fontWeight: '700',
               color: 'black',
@@ -83,71 +119,42 @@ export default function ConfirmTask() {
             visibilityTime: 3000,
           });
           return;
-    }
-    const url = `/hoan-thanh-task?type=${stringConfirm}&UserID=${userID}&TaskID=${taskID}&lyDo=${reason}&dueDate=${dueDate}`;
-    axiosInstance.post(url)
-    .then(response => {
-      if (response.data.code === 200) {
-        Toast.show({
-          type: 'success',
-          text1: 'Đã cập nhập trạng thái "rời lịch" ',
-          visibilityTime: 2000,
-          onHide: () => {
-            fetchData();
-          },
-        });
-       
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: response.data.message,
-          text2: response.data.data,
-          text2Style: {
-            fontWeight: '700',
-            color: 'black',
-          },
-          visibilityTime: 3000,
-        });
-        return;
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
-    console.log('roiwf lich');
-    console.log('reason', reason);
-    console.log('selectedDueDate', selectedDueDate);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching tasks:', error);
+      });
   };
   const handleConfirmHoanThanh = async () => {
-    const stringConfirm = "Hoàn thành";
-    
-    const url = `/hoan-thanh-task?type=${stringConfirm}&UserID=${userID}&TaskID=${taskID}&linkHoanThanh=${linkTask}`;
-    axiosInstance.post(url)
-    .then(response => {
-      if (response.data.code === 200) {
-        Toast.show({
-          type: 'success',
-          text1: 'Đã cập nhập trạng thái "hoàn thành" ',
-          visibilityTime: 2000,
-        });
-       
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: response.data.message,
-          text2: response.data.data,
-          text2Style: {
-            fontWeight: '700',
-            color: 'black',
-          },
-          visibilityTime: 3000,
-        });
-        return;
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching tasks:', error);
-    });
+    const stringConfirm = 'Hoàn thành';
+
+    const url = `/hoan-thanh-task?type=${encodeURIComponent(stringConfirm)}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(taskID)}&linkHoanThanh=${encodeURIComponent(linkTask)}`;
+    axiosInstance
+      .post(url)
+      .then(response => {
+        if (response.data.code === 200) {
+          Toast.show({
+            type: 'success',
+            text1: 'Đã cập nhập trạng thái "hoàn thành" ',
+            visibilityTime: 2000,
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: response.data.message,
+            text2: response.data.data,
+            text2Style: {
+              fontWeight: '700',
+              color: 'black',
+            },
+            visibilityTime: 3000,
+          });
+          return;
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching tasks:', error);
+      });
     console.log('hoanf thanh');
     console.log('linkTask', linkTask);
   };
@@ -156,23 +163,26 @@ export default function ConfirmTask() {
     setShowRescheduleButton(true);
     setShowConfirmButton(true);
     setReason('');
-    setSelectedDueDate(new Date())
+    setSelectedDueDate(new Date());
   };
 
   return (
     taskData && (
       <View style={styles.containerMain}>
-        <LinearGradient colors={['#6A00F4', '#AE47F1']} style={styles.header}>
+        <LinearGradient colors={['#C6E6F1', '#007BFF']} style={styles.header}>
+          <View style={styles.statusContainer}>
+            <Text style={styles.status}>{taskData.task.status }</Text>
+          </View>
           <View style={styles.inputContainerHeader}>
             <Text style={styles.labelHeader}>Tiêu đề</Text>
-            <Text style={styles.inputHeader}>{taskData.title}</Text>
+            <Text style={styles.inputHeader}>{taskData.task.title}</Text>
           </View>
         </LinearGradient>
 
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Mô tả</Text>
-            <Text>{taskData.description}</Text>
+            <Text>{taskData.task.description}</Text>
           </View>
 
           <View style={styles.rowContainer}>
@@ -181,7 +191,7 @@ export default function ConfirmTask() {
               <TextInput
                 style={[styles.inputMore]}
                 placeholder="Chọn ngày tạo"
-                value={moment(taskData.createDate)
+                value={moment(taskData.task.createDate)
                   .tz('Asia/Ho_Chi_Minh')
                   .format('HH:mm DD-MM-YYYY')}
                 editable={false}
@@ -193,7 +203,7 @@ export default function ConfirmTask() {
               <TextInput
                 style={[styles.inputMore]}
                 placeholder="Chọn ngày hết hạn"
-                value={moment(taskData.dueDate)
+                value={moment(taskData.task.dueDate)
                   .tz('Asia/Ho_Chi_Minh')
                   .format('HH:mm DD-MM-YYYY')}
                 editable={false}
@@ -251,19 +261,19 @@ export default function ConfirmTask() {
             )}
             {showConfirmButton && (
               <LinearGradient
-                colors={['#6A00F4', '#AE47F1']}
+                colors={['#C6E6F1', '#C6E6F1']}
                 style={styles.saveButton}>
-                <TouchableOpacity>
-                  <Text style={styles.buttonTextMain}>Hoàn thành</Text>
+                <TouchableOpacity onPress={handleConfirmHoanThanh}>
+                  <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
                 </TouchableOpacity>
               </LinearGradient>
             )}
             {!showConfirmButton && (
               <LinearGradient
-                colors={['#6A00F4', '#AE47F1']}
+                colors={['#C6E6F1', '#C6E6F1']}
                 style={styles.saveButton}>
                 <TouchableOpacity onPress={handleConfirmRoiLich}>
-                  <Text style={styles.buttonTextMain}>Xác nhận</Text>
+                  <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
                 </TouchableOpacity>
               </LinearGradient>
             )}
@@ -289,8 +299,7 @@ export default function ConfirmTask() {
                   display="spinner"
                   onChange={onDueDateChange}
                   locale="vi"
-                textColor={'#000000'}
-                  
+                  textColor={'#000000'}
                 />
                 <Button title="Xác nhận" onPress={confirmDueDate} />
               </View>
@@ -309,6 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    position: 'relative',
   },
   headerTop: {
     flexDirection: 'row',
@@ -386,7 +396,7 @@ const styles = StyleSheet.create({
   },
   multilineInput: {
     height: 100,
-    borderColor: 'tr',
+    borderColor: '#FF8C00',
   },
   saveButton: {
     backgroundColor: '#6A00F4',
@@ -403,7 +413,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   buttonTextMain: {
-    color: 'white',
+    color: '#E8C4F2',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonTextMainConfirm: {
+    color: '#FF8C00',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -416,21 +431,33 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   inputHeader: {
-    height: 40,
     borderBottomWidth: 1,
     borderBottomColor: '#D7DDF0',
-    color: '#FFFFFF',
+    color: '#fff',
     paddingHorizontal: 0,
     marginVertical: 4,
     fontSize: 30,
     fontWeight: '700',
+    flexWrap: 'wrap',  
   },
-  inputMore: {
+  inputMore: {  
     fontSize: 16,
     fontWeight: '600',
   },
   labelMore: {
     fontSize: 12,
     marginBottom: 5,
+  },
+  statusContainer: {
+    position: 'absolute', 
+    right: 16,           
+    top: 20,             
+    backgroundColor: 'white',
+    borderRadius: 8,   
+    padding: 8,         
+  },
+  status: {
+    color: '#007BFF',
+    fontWeight: 'bold',
   },
 });

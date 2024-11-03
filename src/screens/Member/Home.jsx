@@ -85,12 +85,12 @@ function Home() {
         </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={fetchTaskTongQuan}>
-            <Text style={styles.buttonText}>Tổng quan</Text>
+          <TouchableOpacity style={[styles.button, styles.active]} onPress={fetchTaskTongQuan}>
+            <Text style={styles.buttonWhite}>Tổng quan</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={fetchTaskUser}>
-            <Text style={styles.buttonText}>Task hôm nay</Text>
+          <TouchableOpacity style={[styles.button,styles.noneActive]} onPress={fetchTaskUser}>
+            <Text style={styles.buttonDark}>Task hôm nay</Text>
           </TouchableOpacity>
         </View>
 
@@ -127,14 +127,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   button: {
-    backgroundColor: '#1E90FF',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 12,
   },
-  buttonText: {
-    color: 'white',
+  active:{
+    backgroundColor: '#C6E6F1',
+
+  },
+  noneActive:{
+    borderWidth: 1,
+    borderColor: '#ccc'
+  },
+  buttonWhite: {
+    color: '#FF8C00',
     fontWeight: 'bold',
+  },
+  buttonDark: {
+    color: '#2C5364',
   },
   container: {
     minHeight: 800,

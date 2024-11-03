@@ -10,6 +10,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  TouchableWithoutFeedback
 } from 'react-native';
 import axiosInstance from '../../configs/axios';
 import Toast from 'react-native-toast-message';
@@ -82,13 +83,27 @@ function ImportTask() {
   };
 
   const SaveTask = () => {
-    const dataToSend = tasks.map(task => ({
-      assignedToUserID: task.assignedToUserID,
-      title: task.title,
-      description: task.description,
-      createDate: task.createDate,
-      dueDate: task.dueDate,
-    }));
+   
+    
+    const dataToSend = tasks.map(task => {
+      // Chuyển đổi ngày tháng sang định dạng mong muốn
+      const createDateMain = moment(task.createDate)
+        .tz('Asia/Ho_Chi_Minh')
+        .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        
+      const dueDateMain = moment(task.dueDate)
+        .tz('Asia/Ho_Chi_Minh')
+        .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        
+      // Trả về đối tượng với các thuộc tính đã được định dạng
+      return {
+        assignedToUserID: task.assignedToUserID,
+        title: task.title,
+        description: task.description,
+        createDate: createDateMain,
+        dueDate: dueDateMain,
+      };
+    });
 
     axiosInstance
       .post('/import-task-user', dataToSend)
@@ -137,6 +152,8 @@ function ImportTask() {
             Thêm nhiệm vụ cho {user.fullName}
           </Text>
         </View>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+
         <View style={styles.inputContainerHeader}>
           <Text style={styles.labelHeader}>Tiêu đề</Text>
           <TextInput
@@ -151,24 +168,12 @@ function ImportTask() {
             }}
           />
         </View>
+        </TouchableWithoutFeedback>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* <Text style={styles.headerText}></Text> */}
-
-        {/* <View style={styles.inputContainer}>
-        <Text style={styles.label}>Tiêu đề:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nhập tiêu đề"
-          value={tasks[currentIndex].title}
-          onChangeText={text => {
-            const updatedTasks = [...tasks];
-            updatedTasks[currentIndex].title = text;
-            setTasks(updatedTasks);
-          }}
-        />
-      </View> */}
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+       
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Mô tả:</Text>
@@ -184,6 +189,7 @@ function ImportTask() {
             }}
           />
         </View>
+        </TouchableWithoutFeedback>
         <View style={styles.rowContainer}>
           <View style={styles.inputContainer}>
             <Text style={[styles.labelMore]}>Ngày tạo</Text>
@@ -211,27 +217,7 @@ function ImportTask() {
             />
           </View>
         </View>
-        {/* <View style={styles.inputContainer}>
-        <Text style={styles.label}>Ngày tạo:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Chọn ngày tạo"
-          value={moment(tasks[currentIndex].createDate).tz('Asia/Ho_Chi_Minh').format('HH:mm DD-MM-YYYY')}
-          editable={false}
-          onPressIn={() => setShowCreatePicker(true)}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Ngày hết hạn:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Chọn ngày hết hạn"
-          value={moment(tasks[currentIndex].dueDate).tz('Asia/Ho_Chi_Minh').format('HH:mm DD-MM-YYYY')}
-          editable={false}
-          onPressIn={() => setShowDuePicker(true)}
-        />
-      </View> */}
+        
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity

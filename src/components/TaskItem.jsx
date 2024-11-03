@@ -16,7 +16,7 @@ function TaskItem({ task, isSelected = false }) {
     <Text style={styles.description}>{descriptionWithoutPreTags}</Text>
     {isToday && (
         <View style={styles.todayContainer}>
-          <FeatherIcons.AlertOctagon width={16} height={16} color={Theme.accent} />
+          <FeatherIcons.AlertOctagon width={16} height={16} color={'#FF8C00'} />
           <Text style={styles.todayText}> Hôm nay</Text>
         </View>
       )}
@@ -60,11 +60,12 @@ const styles = StyleSheet.create({
     top: 10, 
     padding: 12,
     fontWeight: 700,
-    backgroundColor: 'yellow'
+    backgroundColor: '#C6E6F1',
+    borderRadius: 12
   },
   todayText:{
     fontSize: 14,
-    color: '#000000',
+    color: '#FF8C00',
     fontWeight: 700,
 
   },

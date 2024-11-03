@@ -5,7 +5,6 @@ module.exports = {
   ],
   plugins: [
     "react-native-reanimated/plugin",
-    'tailwindcss-react-native/babel'
   ],
 
 };

@@ -1,26 +1,57 @@
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import {useNavigation} from '@react-navigation/native';
+import React, {useEffect, useState} from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
-
+import {getData} from '../configs/asyncStorage';
 function Header({title}) {
+  const navigation = useNavigation();
+  const handleNavigate = () => {
+    navigation.navigate('Profile');
+  };
+  const [avatar, setAvatar] = useState(null);
 
-    const navigation = useNavigation()
-    const handleNavigate = ()=>{
-        navigation.navigate("Profile")
-    }
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      try {
+        // Lấy dữ liệu avatar từ AsyncStorage
+        const avatarPath = await getData('avatar');
+        console.log('Avatar path fetched:', avatarPath); // Kiểm tra giá trị trả về
 
+        // Xóa dấu nháy nếu có
+        const cleanedAvatarPath = avatarPath
+          ? avatarPath.replace(/"/g, '')
+          : null;
+
+        // Nếu có giá trị, thiết lập avatar
+        if (cleanedAvatarPath) {
+          setAvatar(cleanedAvatarPath);
+        } else {
+          console.warn('No avatar found in AsyncStorage');
+        }
+      } catch (error) {
+        console.error('Error fetching avatar:', error);
+      }
+    };
+    fetchUserAvatar();
+  }, []);
+  const avatarSource =
+    avatar && avatar.trim() !== ''
+      ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
+        ? {uri: avatar}
+        : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
+      : {uri: 'https://i.pravatar.cc/300'};
   return (
     <View style={styles.container}>
-      <View>
-        <Text style={styles.title}>{title}</Text>
-      </View>
+      {avatar && (
+        <>
+          <View>
+            <Text style={styles.title}>{title}</Text>
+          </View>
 
-      <TouchableOpacity onPress={handleNavigate}>
-        <Image
-          source={{uri: 'https://i.pravatar.cc/300'}}
-          style={styles.avatar}
-        />
-      </TouchableOpacity>
+          <TouchableOpacity onPress={handleNavigate}>
+            <Image source={avatarSource} style={styles.avatar} />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -28,12 +59,12 @@ function Header({title}) {
 const styles = StyleSheet.create({
   container: {
     width: '90%',
-    margin:"auto",
+    margin: 'auto',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    marginTop: 8
+    marginTop: 8,
   },
   title: {
     fontSize: 24,
