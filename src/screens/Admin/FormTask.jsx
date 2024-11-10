@@ -8,17 +8,109 @@ import {
   Button,
   Dimensions,
   TouchableOpacity,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Keyboard,
+  Modal,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Header from '../../components/Header';
 import axiosInstance from '../../configs/axios';
 import moment from 'moment'; // Import moment
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const {height} = Dimensions.get('window');
 
 export default function FormTask() {
+  const [currentWeek, setCurrentWeek] = useState(0);
+  const [firstDate, setFirstDate] = useState(() => {
+    // Lấy ngày hôm nay
+    const today = moment().tz('Asia/Ho_Chi_Minh');
+
+    // Lấy ngày Thứ 2 của tuần hiện tại
+    const firstDayOfWeek = today.startOf('isoWeek'); // Thứ 2 của tuần hiện tại
+
+    return firstDayOfWeek.toDate(); // Chuyển sang đối tượng Date
+  });
+
+  const [lastDate, setLastDate] = useState(null);
+  const [showFirstPicker, setShowFirstPicker] = useState(false);
+  const onFirstDateChange = (event, selectedTime) => {
+    if (selectedTime) {
+      setFirstDate(selectedTime);
+    }
+  };
+  const confirmFirstDate = () => {
+    const formattedDate = moment(firstDate)
+      .tz('Asia/Ho_Chi_Minh')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    setShowFirstPicker(false);
+    createWeekData(0);
+  };
+  const createWeekData = (weekOffset = 0) => {
+    const weekData = [];
+
+    // Sử dụng firstDate (ngày bắt đầu) thay vì startOf('isoWeek')
+    const startDate = moment(firstDate).tz('Asia/Ho_Chi_Minh').startOf('day');
+
+    const dayOfWeek = startDate.isoWeekday(); // Lấy số thứ tự ngày trong tuần (1 = Thứ 2, 7 = Chủ nhật)
+
+    // Nếu startDate không phải là Thứ 2, điều chỉnh để bắt đầu từ Thứ 2
+    if (dayOfWeek !== 1) {
+      startDate.subtract(dayOfWeek - 1, 'days'); // Cộng (hoặc trừ) số ngày cần thiết để chuyển về Thứ 2
+    }
+    for (let i = 0; i < 7; i++) {
+      const date = startDate.clone().add(i, 'days');
+
+      let title =
+        date.format('E') === '1'
+          ? 'Thứ 2'
+          : date.format('E') === '2'
+          ? 'Thứ 3'
+          : date.format('E') === '3'
+          ? 'Thứ 4'
+          : date.format('E') === '4'
+          ? 'Thứ 5'
+          : date.format('E') === '5'
+          ? 'Thứ 6'
+          : date.format('E') === '6'
+          ? 'Thứ 7'
+          : 'Chủ nhật';
+
+      // Nếu muốn điều chỉnh từ Thứ 1 thành Thứ 2
+      if (title === 'Thứ 1') {
+        title = 'Thứ 2';
+      }
+
+      weekData.push({
+        title,
+        description: '',
+        datetimeTask: date.format('YYYY-MM-DDTHH:mm:ss'),
+      });
+    }
+
+    // Lấy ngày bắt đầu và ngày kết thúc
+    setFirstDate(new Date(weekData[0].datetimeTask));
+    setLastDate(weekData[weekData.length - 1].datetimeTask);
+    setDataTask(weekData);
+    setCurrentIndex(0); // Đặt lại về task đầu tiên trong tuần
+
+    console.log(weekData);
+  };
+  useEffect(() => {
+    createWeekData(currentWeek);
+  }, []);
+  const goToNextWeek = () => {
+    setCurrentWeek(currentWeek + 1);
+    setCurrentIndex(0); // Đặt lại về task đầu tiên trong tuần
+  };
+
+  const goToPreviousWeek = () => {
+    if (currentWeek > 0) {
+      setCurrentWeek(currentWeek - 1);
+      setCurrentIndex(0); // Đặt lại về task đầu tiên trong tuần
+    }
+  };
   const initData = [];
 
   // Create task data for the week
@@ -27,21 +119,19 @@ export default function FormTask() {
     let title;
 
     if (i === 6) {
-        title = 'Thứ 7'; // For Saturday
+      title = 'Thứ 7'; // For Saturday
     } else if (i === 7) {
-        title = 'Chủ Nhật'; // For Sunday
+      title = 'Chủ Nhật'; // For Sunday
     } else {
-        title = `Thứ ${i + 1}`; // For other days (Monday to Friday)
+      title = `Thứ ${i + 1}`; // For other days (Monday to Friday)
     }
 
     initData.push({
-        taskIDTongQuanTuan: i + 1,
-        title: title,
-        description: '',
-        datetimeTask: moment().add(i, 'days').toISOString(), // ISO format of the date
+      title: title,
+      description: '',
+      datetimeTask: moment().add(i, 'days').toISOString(),
     });
-}
-
+  }
 
   const param = useRoute();
   const data = param.params;
@@ -64,9 +154,9 @@ export default function FormTask() {
       ...task,
       description: `<pre>${task.description}</pre>`,
     }));
-
+    const startDate = moment(firstDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss');
     axiosInstance
-      .post('/import-task-tong-quan', formattedTasks)
+      .post(`/import-task-tong-quan?startTime=${encodeURIComponent(startDate)}`, formattedTasks)
       .then(res => {
         res = res.data;
         if (res.code === 400) {
@@ -99,9 +189,9 @@ export default function FormTask() {
           visibilityTime: 3000,
         });
       })
-      .finally(() => {
-        navigation.navigate('Main', {screen: 'ListTask'});
-      });
+      // .finally(() => {
+      //   navigation.navigate('Main', {screen: 'ListTask'});
+      // });
   };
 
   useEffect(() => {
@@ -112,19 +202,17 @@ export default function FormTask() {
     const currentTask = data_task[currentIndex];
     return (
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>{currentTask.title}</Text>
-        <TextInput
-          style={[styles.input, styles.multilineInput]}
-          multiline={true}
-          onChangeText={handleForm}
-          value={currentTask.description}
-          placeholder="Nhập nội dung ở đây..."
-        />
-      </View>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>{currentTask.title}</Text>
+          <TextInput
+            style={[styles.input, styles.multilineInput]}
+            multiline={true}
+            onChangeText={handleForm}
+            value={currentTask.description}
+            placeholder="Nhập nội dung ở đây..."
+          />
+        </View>
       </TouchableWithoutFeedback>
-
     );
   };
 
@@ -142,7 +230,30 @@ export default function FormTask() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header />
+      <View style={styles.dateContainer}>
+        <TouchableOpacity onPress={() => setShowFirstPicker(true)}>
+          <Text style={styles.dateText}>
+            {firstDate ? moment(firstDate).format('DD/MM/YYYY') : 'Đang tải...'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.arrowText}> ➔ </Text>
+        <Text style={styles.dateText}>
+          {lastDate ? moment.utc(lastDate).format('DD/MM/YYYY') : 'Đang tải...'}
+        </Text>
+      </View>
+
+      {/* <View style={styles.weekNavigation}>
+        <TouchableOpacity
+          style={styles.weekButton}
+          onPress={goToPreviousWeek}
+          disabled={currentWeek === 0}>
+          <Text style={styles.buttonText}>Tuần trước</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.weekButton} onPress={goToNextWeek}>
+          <Text style={styles.buttonText}>Tuần tiếp theo</Text>
+        </TouchableOpacity>
+      </View> */}
       <View style={styles.containerTask}>{renderItem()}</View>
 
       <View style={styles.containerButton}>
@@ -163,13 +274,50 @@ export default function FormTask() {
           </TouchableOpacity>
         )}
       </View>
-
+      {showFirstPicker && (
+        <Modal
+          transparent={true}
+          visible={showFirstPicker}
+          animationType="slide">
+          <View style={styles.modalContainer}>
+            <DateTimePicker
+              value={firstDate}
+              mode="datetime"
+              display="spinner"
+              onChange={onFirstDateChange}
+              locale="vi"
+              textColor={'#000000'}
+            />
+            <Button title="Xác nhận" onPress={confirmFirstDate} />
+          </View>
+        </Modal>
+      )}
       <Toast />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center', // Đảm bảo căn giữa các phần tử
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  dateText: {
+    fontSize: 16,
+    marginHorizontal: 5, // Thêm khoảng cách giữa ngày và mũi tên
+  },
+  arrowText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 5,
+  },
+  weekNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    margin: 12,
+  },
   container: {
     padding: 20,
   },
@@ -212,11 +360,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, 
-    shadowColor: '#000', 
-    shadowOffset: {width: 0, height: 2}, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  weekButton: {
+    flex: 1,
+    marginHorizontal: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#28a745',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   saveButton: {
     flex: 1,
@@ -226,11 +388,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3, 
-    shadowColor: '#000', 
-    shadowOffset: {width: 0, height: 2}, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 4, 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   buttonText: {
     color: 'white',
@@ -241,5 +403,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#aaa', // Màu khi nút bị vô hiệu hóa
     elevation: 0,
     shadowOpacity: 0,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 1)',
   },
 });

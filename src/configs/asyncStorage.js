@@ -5,7 +5,6 @@ const storeData = async (key, value) => {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
-      console.error('Lỗi khi lưu dữ liệu:', e);
     }
   };
 
@@ -31,6 +30,7 @@ const clearData = async () => {
       await AsyncStorage.removeItem('avatar');
       await AsyncStorage.removeItem('fullName');
       await AsyncStorage.removeItem('fcm');
+      await AsyncStorage.removeItem('anhBia');
       
       console.log('Data cleared successfully.');
     } catch (e) {

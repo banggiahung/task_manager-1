@@ -8,6 +8,7 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
+  Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -18,11 +19,13 @@ import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; 
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Loading from '../../components/Loading';
+import CheckBox from '@react-native-community/checkbox';
 
 function TaskListHandle() {
   const navigation = useNavigation();
   const route = useRoute();
   const {user, taskType} = route.params;
+  console.log(user)
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const isFocused = useIsFocused();
@@ -61,6 +64,7 @@ function TaskListHandle() {
     });
 
     setFilteredTasks(updatedTasks);
+    setLoading(false); 
 
   };
   useEffect(() => {
@@ -71,27 +75,28 @@ function TaskListHandle() {
   }, [isFocused]);
   const fetchData = async () => {
     try {
-      setLoading(true);
       let url = '';
-
+  
       if (taskType === 'Hoàn thành') {
         url = `/get-thong-ke/hoan-thanh?UserID=${user?.id}`;
       } else {
         url = `/get-thong-ke/roi-lich?UserID=${user?.id}`;
       }
+  
       const response = await axiosInstance.get(url);
-
       const newData = response.data;
-      setLoading(false);
-      if (newData.daHoanThanh && newData.daHoanThanh != null) {
-        setTasks(newData.daHoanThanh);
+  
+      // Kiểm tra và gán dữ liệu dựa trên phản hồi
+      if (newData?.daHoanThanh) {
+        setTasks(newData.daHoanThanh || []);
       } else {
-        setTasks(newData.roiLich);
+        setTasks(newData.roiLich || []);
       }
     } catch (error) {
       console.error('Error sending UserID:', error);
-    }
+    } 
   };
+  
   useFocusEffect(
     React.useCallback(() => {
       fetchData();

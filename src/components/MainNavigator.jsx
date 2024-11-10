@@ -3,8 +3,11 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import ListTask from '../screens/Admin/ListTask';
 import AddUsers from '../screens/Admin/AddUsers';
 import Dashboard from '../screens/Admin/Dashboard';
+import LichZalo from '../screens/Admin/LichZalo';
+
 import * as FeatherIcons from 'react-native-feather';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import AppConfig from '../screens/Admin/AppConfig';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,7 +18,7 @@ function CustomTabBarButton({ onPress }) {
       onPress={onPress}
     >
       <View style={styles.centerButton}>
-        <FeatherIcons.Home width={28} height={28} color="#FFF" /> 
+        <FeatherIcons.Home width={30} height={30} color="#FFF" /> 
       </View>
     </TouchableOpacity>
   );
@@ -37,12 +40,22 @@ const MainNavigator = () => {
         tabBarActiveTintColor: '#e91e63', // Màu cho tab đang được chọn
         tabBarInactiveTintColor: 'gray', // Màu cho tab không được chọn
       }}>
-      
+       <Tab.Screen
+        name="AppConfig"
+        component={AppConfig}
+        options={{
+          title: '',
+          tabBarIcon: ({color, size}) => (
+            <FeatherIcons.Box width={size} height={size} color={color} />
+          ),
+        }}
+
+      />
       <Tab.Screen
         name="ListTask"
         component={ListTask}
         options={{
-          title: 'Danh Sách',
+          title: '',
           tabBarIcon: ({color, size}) => (
             <FeatherIcons.List width={size} height={size} color={color} />
           ),
@@ -62,9 +75,20 @@ const MainNavigator = () => {
         name="AddUsers"
         component={AddUsers}
         options={{
-          title: 'Nhân viên',
+          title: '',
           tabBarIcon: ({color, size}) => (
             <FeatherIcons.UserPlus width={size} height={size} color={color} />
+          ),
+        }}
+        
+      />
+      <Tab.Screen
+        name="LichZalo"
+        component={LichZalo}
+        options={{
+          title: '',
+          tabBarIcon: ({color, size}) => (
+            <FeatherIcons.Calendar width={size} height={size} color={color} />
           ),
         }}
         

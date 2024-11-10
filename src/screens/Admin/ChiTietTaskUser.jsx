@@ -7,7 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Linking,
-  
+  Keyboard
 } from 'react-native';
 import {Card, Button} from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';

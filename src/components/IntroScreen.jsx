@@ -1,12 +1,13 @@
-// src/screens/IntroScreen.js
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import {storeData, getData} from '../configs/asyncStorage';
+import { storeData, getData } from '../configs/asyncStorage';
+
+const { width, height } = Dimensions.get('window'); // Lấy chiều rộng và chiều cao màn hình
 
 const IntroScreen = () => {
-  const logoTranslateX = useRef(new Animated.Value(Dimensions.get('window').width)).current;
-  const sloganTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+  const logoTranslateX = useRef(new Animated.Value(width)).current;
+  const sloganTranslateX = useRef(new Animated.Value(-width)).current;
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -18,24 +19,24 @@ const IntroScreen = () => {
         Animated.parallel([
           Animated.timing(logoTranslateX, {
             toValue: 0,
-            duration: 3000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(sloganTranslateX, {
-            toValue: 0,
-            duration: 3000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.delay(2000),
-        Animated.parallel([
-          Animated.timing(logoTranslateX, {
-            toValue: Dimensions.get('window').width,
             duration: 800,
             useNativeDriver: true,
           }),
           Animated.timing(sloganTranslateX, {
-            toValue: -Dimensions.get('window').width,
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.delay(800),
+        Animated.parallel([
+          Animated.timing(logoTranslateX, {
+            toValue: width,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sloganTranslateX, {
+            toValue: -width,
             duration: 800,
             useNativeDriver: true,
           }),
@@ -43,18 +44,18 @@ const IntroScreen = () => {
       ]).start(() => {
         if (userId) {
           if (role.includes('Admin')) {
-              navigation.replace('Main', {screen: 'Dashboard'});
-            } else {
-              navigation.replace('Home');
-            }
+            navigation.replace('Main', { screen: 'Dashboard' });
+          } else {
+            navigation.navigate('Client', {screen: 'Home'});
+
+          }
         } else {
           navigation.replace('Login');
         }
-        
       });
     };
 
-    checkLoginStatus(); 
+    checkLoginStatus();
   }, [logoTranslateX, sloganTranslateX, navigation]);
 
   return (
@@ -78,22 +79,25 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: 'absolute',
-    top: '40%',
+    top: height * 0.35, 
   },
   logo: {
-    width: 120, // Điều chỉnh kích thước logo
-    height: 120,
+    width: width * 0.4, 
+    height: width * 0.4, 
     resizeMode: 'contain',
   },
   sloganContainer: {
     position: 'absolute',
-    top: '50%',
+    top: height * 0.5, // Điều chỉnh vị trí slogan để ở khoảng 50% chiều cao màn hình
   },
   slogan: {
-    fontSize: 20,
+    fontSize: width * 0.06, // Điều chỉnh kích thước chữ dựa trên chiều rộng màn hình
     fontStyle: 'italic',
     color: '#555555',
+    textAlign: 'center', // Căn giữa slogan
   },
 });
 
 export default IntroScreen;
+
+

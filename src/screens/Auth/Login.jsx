@@ -12,9 +12,11 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Image,
+  Keyboard,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
+
 import Theme from '../../configs/color';
 import axiosInstance from '../../configs/axios';
 import {storeData, getData} from '../../configs/asyncStorage';
@@ -65,7 +67,7 @@ export default function Login() {
           if (res_data.role.includes('Admin')) {
             navigation.navigate('Main', {screen: 'Dashboard'});
           } else {
-            navigation.navigate('Home');
+            navigation.navigate('Client', {screen: 'Home'});
           }
         } else {
           setLoading(false);
@@ -81,34 +83,38 @@ export default function Login() {
       });
   }, [userData, navigation]);
   const [userId, setUserId] = useState(null);
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const id = await getData('userId');
-      const role = await getData('role');
-      const fcm = await getData('fcm');
-      const cleanedToken = fcm.replace(/["\\]/g, '');
-      console.log(cleanedToken);
-
-      setUserData(prevState => ({
-        ...prevState,
-        fcmToken: cleanedToken || '',
-      }));
-      if (id) {
-        console.log('đã có id rồi', id);
-        if (role.includes('Admin')) {
-          navigation.navigate('Main', {screen: 'Dashboard'});
+  const handleRegister = () => {
+    navigation.navigate('Registration');
+  };
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchUserId = async () => {
+        const id = await getData('userId');
+        const role = await getData('role');
+        const fcm = await getData('fcm');
+        console.log(fcm);
+        const cleanedToken = fcm.replace(/["\\]/g, '');
+        setUserData(prevState => ({
+          ...prevState,
+          fcmToken: cleanedToken || '',
+        }));
+        if (id) {
+          console.log('đã có id rồi', id);
+          if (role.includes('Admin')) {
+            navigation.navigate('Main', {screen: 'Dashboard'});
+          } else {
+            navigation.navigate('Client', {screen: 'Home'});
+            
+          }
+          setUserId(id);
         } else {
-          navigation.navigate('Home');
+          console.log('Không tìm thấy userId');
         }
-        setUserId(id);
-      } else {
-        console.log('Không tìm thấy userId');
-      }
-    };
+      };
 
-    fetchUserId(); // Gọi hàm fetchUserId
-  }, []);
+      fetchUserId(); // Gọi hàm fetchUserId
+    }, []), // Chạy chỉ một lần khi component mount
+  );
 
   if (loading) {
     return <Loading />;
@@ -133,31 +139,32 @@ export default function Login() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 10}>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 100}>
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: 'center',
             alignItems: 'center',
             marginTop: 50,
-            
+            paddingBottom: 1000,
           }}
-          >
+          keyboardShouldPersistTaps="handled">
           <Image
             source={{uri: 'https://gigiapi.gigi.io.vn/gigi-logo.png'}}
             style={{
-              width: 100, 
-              height: 100, 
-              marginBottom: 20, 
+              width: 100,
+              height: 100,
+              marginBottom: 20,
             }}
             resizeMode="contain"
           />
-          <View style={{
-            width: '100%',
-            flex: 1,
-            alignItems: 'center',
-            height: 100
-          }}>
+          <View
+            style={{
+              width: '100%',
+              flex: 1,
+              alignItems: 'center',
+              height: 100,
+            }}>
             <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Tài khoản</Text>
@@ -190,16 +197,20 @@ export default function Login() {
             <TouchableOpacity style={styles.loginButton} onPress={HandleLogin}>
               <Text style={styles.buttonText}>Đăng nhập</Text>
             </TouchableOpacity>
-            <View style={{ marginTop: 50, alignItems: 'center' }}>
-        <Text style={{ fontSize: 14, color: '#666' }}>
-          Chào mừng các nhân viên của GiGi Academy!
-        </Text>
-        <Text style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
-          Hãy đăng nhập để trải nghiệm đầy đủ các tính năng.
-        </Text>
-      </View>
+            <View style={{marginTop: 50, alignItems: 'center'}}>
+              <Text style={{fontSize: 14, color: '#666'}}>
+                Chào mừng các nhân viên của GiGi Academy!
+              </Text>
+              <Text style={{fontSize: 12, color: '#666', marginTop: 5}}>
+                Hãy đăng nhập để trải nghiệm đầy đủ các tính năng.
+              </Text>
+              <TouchableOpacity onPress={handleRegister}>
+                <Text style={{fontSize: 12, color: '#1E90FF', marginTop: 20}}>
+                  Chưa có tài khoản? Đăng ký ngay
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -10,12 +10,14 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import axiosInstance from '../../configs/axios';
 import Toast from 'react-native-toast-message';
 import moment from 'moment-timezone';
 import LinearGradient from 'react-native-linear-gradient';
+import CheckBox from '@react-native-community/checkbox';
 
 function ImportTask() {
   const navigation = useNavigation();
@@ -28,6 +30,7 @@ function ImportTask() {
       description: '',
       createDate: new Date(),
       dueDate: new Date(),
+      isKPI: false,
     },
   ]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -36,6 +39,11 @@ function ImportTask() {
   const [selectedCreateDate, setSelectedCreateDate] = useState(new Date());
   const [selectedDueDate, setSelectedDueDate] = useState(new Date());
 
+  const handleToggleCheckbox = isChecked => {
+    const updatedTasks = [...tasks];
+    updatedTasks[currentIndex].isKPI = isChecked;
+    setTasks(updatedTasks);
+  };
   const onCreateDateChange = (event, selectedTime) => {
     if (selectedTime) {
       setSelectedCreateDate(selectedTime);
@@ -77,24 +85,23 @@ function ImportTask() {
         description: '',
         createDate: new Date(),
         dueDate: new Date(),
+        isKPI: false,
       },
     ]);
     setCurrentIndex(tasks.length);
   };
 
   const SaveTask = () => {
-   
-    
     const dataToSend = tasks.map(task => {
       // Chuyển đổi ngày tháng sang định dạng mong muốn
       const createDateMain = moment(task.createDate)
         .tz('Asia/Ho_Chi_Minh')
         .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        
+
       const dueDateMain = moment(task.dueDate)
         .tz('Asia/Ho_Chi_Minh')
         .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        
+
       // Trả về đối tượng với các thuộc tính đã được định dạng
       return {
         assignedToUserID: task.assignedToUserID,
@@ -102,6 +109,7 @@ function ImportTask() {
         description: task.description,
         createDate: createDateMain,
         dueDate: dueDateMain,
+        isKPI: task.isKPI,
       };
     });
 
@@ -152,43 +160,47 @@ function ImportTask() {
             Thêm nhiệm vụ cho {user.fullName}
           </Text>
         </View>
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-
-        <View style={styles.inputContainerHeader}>
-          <Text style={styles.labelHeader}>Tiêu đề</Text>
-          <TextInput
-            style={styles.inputHeader}
-            placeholder="Nhập tiêu đề"
-            placeholderTextColor="#FFFFFF"
-            value={tasks[currentIndex].title}
-            onChangeText={text => {
-              const updatedTasks = [...tasks];
-              updatedTasks[currentIndex].title = text;
-              setTasks(updatedTasks);
-            }}
-          />
-        </View>
+        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+          <View style={styles.inputContainerHeader}>
+            <Text style={styles.labelHeader}>Tiêu đề</Text>
+            <TextInput
+              style={styles.inputHeader}
+              placeholder="Nhập tiêu đề"
+              placeholderTextColor="#FFFFFF"
+              value={tasks[currentIndex].title}
+              onChangeText={text => {
+                const updatedTasks = [...tasks];
+                updatedTasks[currentIndex].title = text;
+                setTasks(updatedTasks);
+              }}
+            />
+          </View>
         </TouchableWithoutFeedback>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.container}>
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-       
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Mô tả:</Text>
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Nhập mô tả"
-            value={tasks[currentIndex].description}
-            multiline={true}
-            onChangeText={text => {
-              const updatedTasks = [...tasks];
-              updatedTasks[currentIndex].description = text;
-              setTasks(updatedTasks);
-            }}
+        <View style={styles.checkboxContainer}>
+          <CheckBox
+            value={tasks[currentIndex].isKPI || false}
+            onValueChange={newValue => handleToggleCheckbox(newValue)}
           />
+          <Text style={styles.checkboxLabel}>Có tính KPI</Text>
         </View>
+        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Mô tả:</Text>
+            <TextInput
+              style={[styles.input, styles.multilineInput]}
+              placeholder="Nhập mô tả"
+              value={tasks[currentIndex].description}
+              multiline={true}
+              onChangeText={text => {
+                const updatedTasks = [...tasks];
+                updatedTasks[currentIndex].description = text;
+                setTasks(updatedTasks);
+              }}
+            />
+          </View>
         </TouchableWithoutFeedback>
         <View style={styles.rowContainer}>
           <View style={styles.inputContainer}>
@@ -217,7 +229,6 @@ function ImportTask() {
             />
           </View>
         </View>
-        
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -243,13 +254,13 @@ function ImportTask() {
             <Text style={styles.buttonText}>Sau</Text>
           </TouchableOpacity>
         </View>
-        <LinearGradient
-          colors={['#6A00F4', '#AE47F1']}
-          style={styles.saveButton}>
-          <TouchableOpacity onPress={SaveTask}>
+        <TouchableOpacity onPress={SaveTask}>
+          <LinearGradient
+            colors={['#6A00F4', '#AE47F1']}
+            style={styles.saveButton}>
             <Text style={styles.buttonTextMain}>Lưu Task</Text>
-          </TouchableOpacity>
-        </LinearGradient>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {showCreatePicker && (
           <Modal
@@ -283,7 +294,6 @@ function ImportTask() {
                 onChange={onDueDateChange}
                 locale="vi"
                 textColor={'#000000'}
-                
               />
               <Button title="Xác nhận" onPress={confirmDueDate} />
             </View>
@@ -296,6 +306,17 @@ function ImportTask() {
 }
 
 const styles = StyleSheet.create({
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+    paddingVertical: 8,
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
   containerMain: {},
   header: {
     paddingVertical: 20,
@@ -420,13 +441,11 @@ const styles = StyleSheet.create({
   inputMore: {
     fontSize: 16,
     fontWeight: '600',
-
   },
-  labelMore:{
+  labelMore: {
     fontSize: 12,
     marginBottom: 5,
-
-  }
+  },
 });
 
 export default ImportTask;

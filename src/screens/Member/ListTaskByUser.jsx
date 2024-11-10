@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback,useRef} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -19,9 +20,12 @@ import Toast from 'react-native-toast-message';
 import DayItem from '../../components/DayItem';
 import Loading from '../../components/Loading';
 import Theme from '../../configs/color';
+import {storeData, getData} from '../../configs/asyncStorage.js';
 
 import * as FeatherIcons from 'react-native-feather';
 function ListTaskByUser() {
+  const scrollViewRef = useRef(null);
+
   const navigation = useNavigation();
   const route = useRoute();
   const userId = route.params?.userId;
@@ -44,14 +48,14 @@ function ListTaskByUser() {
     }, [userId, selectedDate]),
   );
 
-  const fetchTasks = () => {
+  const fetchTasks = async () => {
     setLoading(true);
 
     const formattedDate = moment(selectedDate)
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DD');
 
-    const url = `/get-list-task-user?UserID=${userId}&createDate=${formattedDate}`;
+    const url = `/get-list-task-user?UserID=${userId.replace(/"/g, '')}&createDate=${formattedDate}`;
     console.log(url);
     axiosInstance
       .get(url)
@@ -142,7 +146,18 @@ function ListTaskByUser() {
     setSelectedDate(day);
     console.log(day);
   };
+  useEffect(() => {
+    const activeIndex = daysOfWeekWithDates.findIndex(day => day.isoDate === selectedDate);
+    if (activeIndex !== -1 && scrollViewRef.current) {
+      const itemWidth = 90;
+      const scrollPosition = itemWidth * activeIndex - itemWidth * 2; // 3 ở đây là số item hiển thị ở mỗi bên
 
+      scrollViewRef.current.scrollTo({
+        x: scrollPosition,
+        animated: true,
+      });
+    }
+  }, [daysOfWeekWithDates,selectedDate]);
   const getVietnameseDayName = dayName => {
     switch (dayName.trim()) {
       case 'Monday':
@@ -160,7 +175,7 @@ function ListTaskByUser() {
       case 'Sunday':
         return 'Chủ nhật';
       default:
-        return '';
+        return dayName.trim();
     }
   };
 
@@ -181,7 +196,7 @@ function ListTaskByUser() {
       {/* const isActive = date === today || date === selectedDateHeader; */}
 
       <View style={styles.monthContainer}>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} horizontal={true} showsHorizontalScrollIndicator={false}>
           {daysOfWeekWithDates.map((dayObj, index) => {
             const vietnameseDayName = getVietnameseDayName(
               dayObj.displayDate.split(',')[0],
@@ -271,14 +286,15 @@ function ListTaskByUser() {
 
                 return (
                   <Swipeable
-                    renderLeftActions={renderLeftActions}
-                    renderRightActions={renderRightActions}>
+                    // renderLeftActions={renderLeftActions}
+                    // renderRightActions={renderRightActions}
+                    >
                     <TouchableOpacity
                       style={styles.taskItem}
                       onPress={() =>
                         navigation.navigate('ConfirmTask', {
                           taskID: item.taskID,
-                          userId: userId,
+                          userId: userId.replace(/"/g, ''),
                         })
                       }>
                       <View style={styles.taskContent}>

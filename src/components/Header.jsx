@@ -14,19 +14,21 @@ function Header({title}) {
       try {
         // Lấy dữ liệu avatar từ AsyncStorage
         const avatarPath = await getData('avatar');
-        console.log('Avatar path fetched:', avatarPath); // Kiểm tra giá trị trả về
-
-        // Xóa dấu nháy nếu có
-        const cleanedAvatarPath = avatarPath
+        console.log('Avatar path fetched:', avatarPath); 
+        if(avatarPath){
+          const cleanedAvatarPath = avatarPath
           ? avatarPath.replace(/"/g, '')
           : null;
-
-        // Nếu có giá trị, thiết lập avatar
-        if (cleanedAvatarPath) {
-          setAvatar(cleanedAvatarPath);
-        } else {
-          console.warn('No avatar found in AsyncStorage');
+          if (cleanedAvatarPath) {
+            setAvatar(cleanedAvatarPath);
+          } else {
+            console.warn('No avatar found in AsyncStorage');
+          }
         }
+        // Xóa dấu nháy nếu có
+      
+        // Nếu có giá trị, thiết lập avatar
+      
       } catch (error) {
         console.error('Error fetching avatar:', error);
       }
@@ -34,11 +36,12 @@ function Header({title}) {
     fetchUserAvatar();
   }, []);
   const avatarSource =
-    avatar && avatar.trim() !== ''
-      ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
-        ? {uri: avatar}
-        : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
-      : {uri: 'https://i.pravatar.cc/300'};
+  avatar && avatar.trim() !== '' && avatar !== 'null'
+    ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
+      ? {uri: avatar}
+      : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
+    : {uri: 'https://i.pravatar.cc/300'};
+
   return (
     <View style={styles.container}>
       {avatar && (

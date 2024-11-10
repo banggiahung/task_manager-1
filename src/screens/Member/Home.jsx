@@ -36,6 +36,7 @@ function Home() {
   const monthNumber = moment().month() + 1;
   const fetchData = async () => {
     const storedUserId = await getData('userId');
+    console.log(storedUserId);
     setUserId(storedUserId);
   };
 
@@ -66,16 +67,23 @@ function Home() {
     //       setTotalTask(res.data.data);
     //     });
     // }
-    navigation.navigate('ListTaskByUser', { userId: userId });
-
-
+    navigation.navigate('ListTaskByUser', {userId: userId});
   };
   useEffect(() => {
     fetchData();
     fetchTaskTongQuan();
   }, []);
-  const handlePress = () => {
-    navigation.navigate('Main', {screen: 'Dashboard'});
+  const handlePress = async () => {
+    const role = await getData('role');
+    const cleanRole = role
+      .replaceAll('[', '')
+      .replaceAll(']', '')
+      .replaceAll('"', '')
+      .replaceAll('\\', '');
+    console.log(role);
+    if (cleanRole == 'Admin') {
+      navigation.navigate('Main', {screen: 'Dashboard'});
+    }
   };
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -85,21 +93,28 @@ function Home() {
         </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.active]} onPress={fetchTaskTongQuan}>
+          <TouchableOpacity
+            style={[styles.button, styles.active]}
+            onPress={fetchTaskTongQuan}>
             <Text style={styles.buttonWhite}>Tổng quan</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button,styles.noneActive]} onPress={fetchTaskUser}>
+          <TouchableOpacity
+            style={[styles.button, styles.noneActive]}
+            onPress={fetchTaskUser}>
             <Text style={styles.buttonDark}>Task hôm nay</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.container}>
           <ScrollView ref={scrollViewRef} style={styles.taskContainer}>
-            {totalTask &&
+            {totalTask && totalTask.length > 0 ? (
               totalTask.map((item, index) => (
                 <TaskItem task={item} key={index} />
-              ))}
+              ))
+            ) : (
+              <Text style={styles.noDataText}>Không có task tuần này</Text>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -108,6 +123,12 @@ function Home() {
 }
 
 const styles = StyleSheet.create({
+  noDataText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 20,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: 'white',
@@ -131,13 +152,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
   },
-  active:{
+  active: {
     backgroundColor: '#C6E6F1',
-
   },
-  noneActive:{
+  noneActive: {
     borderWidth: 1,
-    borderColor: '#ccc'
+    borderColor: '#ccc',
   },
   buttonWhite: {
     color: '#FF8C00',

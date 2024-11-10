@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import moment from 'moment';
@@ -20,6 +20,7 @@ import * as FeatherIcons from 'react-native-feather';
 import Loading from '../../components/Loading';
 
 function Dashboard() {
+  const scrollViewRef = useRef(null);
   const [list_user, setListUser] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,7 +47,8 @@ function Dashboard() {
     const role = await getData('role');
     if (role) {
       if (role.includes('Admin')) {
-        navigation.navigate('Home');
+        navigation.navigate('Client', {screen: 'Home'});
+        
       } else {
         return;
       }
@@ -65,8 +67,7 @@ function Dashboard() {
     } catch (error) {
       console.log(error);
     } finally {
-      setRefreshing(false); 
-
+      setRefreshing(false);
     }
   };
   useFocusEffect(
@@ -74,16 +75,42 @@ function Dashboard() {
       fetchUsers();
     }, []), // Chạy chỉ một lần khi component mount
   );
+  useEffect(() => {
+    const activeIndex = daysOfWeekWithDates.findIndex(day => day === today);
+    if (activeIndex !== -1 && scrollViewRef.current) {
+      // Tính toán vị trí cần cuộn để item nằm giữa
+      const itemWidth = 90; // Đặt chiều rộng tương ứng của mỗi item
+      const scrollPosition = itemWidth * activeIndex - itemWidth * 2; // 3 ở đây là số item hiển thị ở mỗi bên
 
+      scrollViewRef.current.scrollTo({
+        x: scrollPosition,
+        animated: true,
+      });
+    }
+  }, [today, daysOfWeekWithDates]);
+  const handleScroll = event => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const contentWidth = event.nativeEvent.contentSize.width;
+    const layoutWidth = event.nativeEvent.layoutMeasurement.width;
+
+    // Kiểm tra khi nào người dùng cuộn đến cuối trang
+    if (contentOffsetX + layoutWidth >= contentWidth - 10) {
+      if (page < totalPages) {
+        setPage(page + 1); // Chuyển sang trang tiếp theo
+      }
+    }
+  };
   if (loading) {
     return <Loading />;
   }
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView} refreshControl={
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={fetchUsers} // Gọi lại hàm fetchUsers khi refresh
+            onRefresh={fetchUsers} 
           />
         }>
         <TouchableOpacity onPress={handlePress} style={styles.headerContainer}>
@@ -96,6 +123,7 @@ function Dashboard() {
               <Text style={styles.monthText}>Tháng {currentMon}</Text>
             </View> */}
             <ScrollView
+              ref={scrollViewRef}
               horizontal={true}
               showsHorizontalScrollIndicator={false}>
               {daysOfWeekWithDates.map((day, index) => (
@@ -110,6 +138,7 @@ function Dashboard() {
                 <Text style={styles.addButtonText}>Tổng quan</Text>
                 <FeatherIcons.Plus width={16} height={16} color="#1E90FF" />
               </TouchableOpacity>
+            
             </View>
             <View style={styles.userList}>
               {list_user.map((user, index) => (

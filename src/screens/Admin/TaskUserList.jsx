@@ -7,6 +7,7 @@ import {
   FlatList,
   Modal,
   TouchableOpacity,
+  Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -126,14 +127,14 @@ function TaskUserList() {
             visibilityTime: 2000,
           });
           setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks]; // Tạo bản sao mảng
+            const updatedTasks = [...prevTasks]; 
             const index = updatedTasks.findIndex(
               task => task.taskID === taskId,
             );
             if (index !== -1) {
-              updatedTasks.splice(index, 1); // Xóa task khỏi mảng
+              updatedTasks.splice(index, 1); 
             }
-            return updatedTasks; // Cập nhật state với mảng đã thay đổi
+            return updatedTasks;
           });
         } else {
           Toast.show({

@@ -14,14 +14,22 @@ import EditTaskTongQuan from './src/screens/Admin/EditTaskTongQuan.jsx';
 import TaskUserList from './src/screens/Admin/TaskUserList.jsx';
 import TaskDetail from './src/screens/Admin/TaskDetail.jsx';
 import TaskListHandle from './src/screens/Admin/TaskListHandle.jsx';
+import AppConfig from './src/screens/Admin/AppConfig.jsx';
+import AddLichZalo from './src/screens/Admin/AddLichZalo.jsx';
+import EditLichZalo from './src/screens/Admin/EditLichZalo.jsx';
 
-import Home from './src/screens/Member/Home.jsx';
+
 import ListTaskByUser from './src/screens/Member/ListTaskByUser.jsx';
 import ConfirmTask from './src/screens/Member/ConfirmTask.jsx';
+import DetailsZalo from './src/screens/Member/DetailsZalo.jsx';
+
 
 import Login from './src/screens/Auth/Login.jsx';
+import Registration from './src/screens/Auth/Registration.jsx';
+
 import Profile from './src/screens/Auth/Profile.jsx';
 import MainNavigator from './src/components/MainNavigator';
+import ClientNavigator from './src/components/ClientNavigator';
 import messaging from '@react-native-firebase/messaging';
 import {useEffect} from 'react';
 import {Alert} from 'react-native';
@@ -51,8 +59,30 @@ function App() {
     const getToken = async () => {
       const token = await messaging().getToken();
       console.log('FCM Token:', token);
-      storeData("fcm",token);
-     
+      storeData('fcm', token);
+
+      const userId = await getData('userId');
+      const data = new FormData();
+      data.append('UserID', userId.replace(/"/g, ''));
+      data.append('fcm', token);
+      
+  
+      try {
+        const response = await axiosInstance.post('/set-fcm-user', data, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        if (response.data.code == 200) {
+          storeData('fcm', token);
+          console.log(response.data.code)
+        }
+  
+      } catch (error) {
+        console.error('Error during registration:', error);
+       
+      }
+      
     };
 
     getToken();
@@ -63,7 +93,6 @@ function App() {
         message: remoteMessage.notification.body,
         playSound: true,
         soundName: 'default',
-        
       });
     });
 
@@ -85,19 +114,20 @@ function App() {
             headerShown: false,
           }}
         />
-        <Stack.Screen
-          name="Home"
-          component={Home}
-          options={{
-            title: 'Trang Chủ',
-            headerShown: false,
-          }}
-        />
+       
         <Stack.Screen
           name="AddUsers"
           component={AddUsers}
           options={{
             headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Client"
+          component={ClientNavigator}
+          options={{
+            headerShown: false,
+            title: 'Trang Chủ',
           }}
         />
         <Stack.Screen
@@ -108,6 +138,7 @@ function App() {
             title: 'Trang Chủ',
           }}
         />
+       
 
         <Stack.Screen
           name="FormTask"
@@ -136,6 +167,14 @@ function App() {
         <Stack.Screen
           name="TaskUserList"
           component={TaskUserList}
+          options={{
+            title: '',
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="AddLichZalo"
+          component={AddLichZalo}
           options={{
             title: '',
             headerShown: true,
@@ -173,14 +212,14 @@ function App() {
             headerShown: true,
           }}
         />
-        <Stack.Screen
+        {/* <Stack.Screen
           name="ListTaskByUser"
           component={ListTaskByUser}
           options={{
             title: '',
             headerShown: true,
           }}
-        />
+        /> */}
         <Stack.Screen
           name="ConfirmTask"
           component={ConfirmTask}
@@ -197,6 +236,31 @@ function App() {
             headerShown: true,
           }}
         />
+        <Stack.Screen
+          name="Registration"
+          component={Registration}
+          options={{
+            title: '',
+            headerShown: true,
+          }}
+        />
+         <Stack.Screen
+          name="EditLichZalo"
+          component={EditLichZalo}
+          options={{
+            title: '',
+            headerShown: true,
+          }}
+        />
+         <Stack.Screen
+          name="DetailsZalo"
+          component={DetailsZalo}
+          options={{
+            title: '',
+            headerShown: true,
+          }}
+        />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

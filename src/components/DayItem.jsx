@@ -1,5 +1,5 @@
 
-import React from "react";
+import React ,{useRef} from "react";
 import { Text, View, StyleSheet } from "react-native";
 import Theme from "../configs/color";
 
@@ -8,38 +8,38 @@ function DayItem({ date, active }) {
     const dayName = day_split[0];
     let day = "";
 
-    // Chuyển đổi tên ngày tiếng Anh sang tiếng Việt
-    switch (dayName.trim()) {
-        case 'Monday':
-            day = "Thứ 2";
-            break;
-        case 'Tuesday':
-            day = "Thứ 3";
-            break;
-        case 'Wednesday':
-            day = "Thứ 4";
-            break;
-        case 'Thursday':
-            day = "Thứ 5";
-            break;
-        case 'Friday':
-            day = "Thứ 6";
-            break;
-        case 'Saturday':
-            day = "Thứ 7";
-            break;
-        case 'Sunday':
-            day = "Chủ nhật";
-            break;
-        default:
-            day = ""; // Nếu không phải ngày hợp lệ
-            break;
-    }
+    // // Chuyển đổi tên ngày tiếng Anh sang tiếng Việt
+    // switch (dayName.trim()) {
+    //     case 'Monday':
+    //         day = "Thứ 2";
+    //         break;
+    //     case 'Tuesday':
+    //         day = "Thứ 3";
+    //         break;
+    //     case 'Wednesday':
+    //         day = "Thứ 4";
+    //         break;
+    //     case 'Thursday':
+    //         day = "Thứ 5";
+    //         break;
+    //     case 'Friday':
+    //         day = "Thứ 6";
+    //         break;
+    //     case 'Saturday':
+    //         day = "Thứ 7";
+    //         break;
+    //     case 'Sunday':
+    //         day = "Chủ nhật";
+    //         break;
+    //     default:
+    //         day = ""; // Nếu không phải ngày hợp lệ
+    //         break;
+    // }
 
     return (
         <View style={[styles.container, active && styles.active]}>
             <Text style={{ color: 'black', fontSize:26, fontWeight:"bold" }}>{day_split[1].trim()}</Text>
-            <Text style={{ color: 'black', fontSize:10, fontWeight:"thin" }}>{day}</Text>
+            <Text style={{ color: 'black', fontSize:10, fontWeight:"thin", textTransform: "capitalize" }}>{dayName}</Text>
         </View>
     );
 }

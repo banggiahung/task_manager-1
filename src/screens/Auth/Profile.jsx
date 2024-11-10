@@ -1,28 +1,47 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import React, {useEffect, useState, Component} from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+  ImageBackground,
+  ScrollView,
+  TextInput,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Theme from '../../configs/color';
 import {useNavigation} from '@react-navigation/native';
 import {clearData} from '../../configs/asyncStorage';
-import {getData} from '../../configs/asyncStorage';
+import {getData, storeData} from '../../configs/asyncStorage';
 import axiosInstance from '../../configs/axios';
 import Loading from '../../components/Loading';
 import Toast from 'react-native-toast-message';
 import {launchImageLibrary} from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
+import image from '../../assets/background.png';
+import LinearGradient from 'react-native-linear-gradient';
 
 function Profile() {
+  const [isModalVisible, setModalVisible] = useState(false);
+
   const [avatar, setAvatar] = useState(null);
+  const [avatarBia, setAvatarBia] = useState(null);
   const [fullName, setFullName] = useState(null);
   const [tasksHoanThanh, setTasksHoanThanh] = useState(0);
   const [tasksRoiLich, setTasksRoiLich] = useState(0);
   const [kpi, setKpi] = useState(0);
   const [loading, setLoading] = useState(false);
-
+  const [newPassword, setNewPassword] = useState('');
   const [userData, setUserData] = useState({
     fullName: '',
     role: '',
     avatar: null,
+    anhBia: null,
   });
 
   const navigation = useNavigation();
@@ -46,7 +65,6 @@ function Profile() {
         },
       );
       const newData = response.data;
-      console.log(newData);
       if (newData.daHoanThanh > 0) {
         setTasksHoanThanh(newData.daHoanThanh);
       }
@@ -56,54 +74,115 @@ function Profile() {
       if (newData.kpiUser > 0) {
         setKpi(newData.kpiUser);
       }
-      console.log('Response:', response.data);
     } catch (error) {
       console.error('Error sending UserID:', error);
     }
   };
   const handleImagePick = async () => {
-    launchImageLibrary({ mediaType: 'photo' }, async (response) => {
+    launchImageLibrary({mediaType: 'photo'}, async response => {
       if (response.assets && response.assets.length > 0) {
         const uri = response.assets[0].uri;
-        setLoading(true)
+        setLoading(true);
 
         try {
           const base64String = await RNFS.readFile(uri, 'base64');
           const userId = await getData('userId');
           const formData = new FormData();
-        formData.append(`UserID`, userId.replace(/"/g, ''));
-        formData.append(`avatar`, `data:image/jpeg;base64,${base64String}`);
-        const response = await axiosInstance.post('/tao-tai-khoan', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        setLoading(false)
-        if (response.code === 400) {
+          formData.append(`UserID`, userId.replace(/"/g, ''));
+          formData.append(`avatar`, `data:image/jpeg;base64,${base64String}`);
+          const response = await axiosInstance.post(
+            '/upload-image-avatar',
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            },
+          );
+          setLoading(false);
+          if (response.code === 400) {
+            Toast.show({
+              type: 'error',
+              text1: response.message,
+              text2: response.data,
+              text2Style: {fontWeight: '700', color: 'black'},
+              visibilityTime: 3000,
+            });
+          } else {
+            setAvatar(response.data.data);
+            storeData('avatar', response.data.data);
+
+            console.log(response.data.data);
+            setUserData(prevState => ({
+              ...prevState,
+              avatar: response.data.data,
+            }));
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+            });
+          }
+        } catch (error) {
+          setLoading(false);
+
           Toast.show({
             type: 'error',
-            text1: response.message,
-            text2: response.data,
+            text1: 'Thất bại',
+            text2: 'Đã có lỗi xảy ra',
             text2Style: {fontWeight: '700', color: 'black'},
             visibilityTime: 3000,
           });
-        } else {
-          setUserData(prevState => ({
-            ...prevState,
-            avatar: response.data.data,
-            
-          }));
-          Toast.show({
-            type: 'success',
-            text1: 'Thành công',
-          });
+          console.error('Error converting image to Base64:', error);
         }
+      }
+    });
+  };
+  const handleImagePickProfile = async () => {
+    launchImageLibrary({mediaType: 'photo'}, async response => {
+      if (response.assets && response.assets.length > 0) {
+        const uri = response.assets[0].uri;
+        setLoading(true);
 
-          
-          
-         
+        try {
+          const base64String = await RNFS.readFile(uri, 'base64');
+          const userId = await getData('userId');
+          const formData = new FormData();
+          formData.append(`UserID`, userId.replace(/"/g, ''));
+          formData.append(`avatar`, `data:image/jpeg;base64,${base64String}`);
+          const response = await axiosInstance.post(
+            '/upload-image-profile',
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            },
+          );
+          setLoading(false);
+          if (response.code === 400) {
+            Toast.show({
+              type: 'error',
+              text1: response.message,
+              text2: response.data,
+              text2Style: {fontWeight: '700', color: 'black'},
+              visibilityTime: 3000,
+            });
+          } else {
+            setAvatarBia(response.data.data);
+            storeData('anhBia', response.data.data);
+
+            console.log(response.data.data);
+            setUserData(prevState => ({
+              ...prevState,
+              anhBia: response.data.data,
+            }));
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+            });
+          }
         } catch (error) {
-        setLoading(false)
+          setLoading(false);
 
           Toast.show({
             type: 'error',
@@ -121,12 +200,39 @@ function Profile() {
     const fetchUserData = async () => {
       try {
         // Lấy dữ liệu từ AsyncStorage
-        const avatarPath = await getData('avatar');
+        let avatarPath = await getData('avatar');
+        let anhBiaPath = await getData('anhBia');
+        const userId = await getData('userId');
+        console.log(avatarPath);
+        if (!avatarPath || avatarPath == 'null') {
+          const response = await axiosInstance.get(
+            `get-deatils-user?UserID=${userId.replace(/"/g, '')}`,
+          );
+          if (response.data.code == 200) {
+            storeData('avatar', response.data.data.avatar);
+
+            avatarPath = response.data.data.avatar;
+          }
+        }
+        if (!anhBiaPath || anhBiaPath == 'null') {
+          const response = await axiosInstance.get(
+            `get-deatils-user?UserID=${userId.replace(/"/g, '')}`,
+          );
+          if (response.data.code == 200) {
+            storeData('anhBia', response.data.data.profileAvatar);
+
+            anhBiaPath = response.data.data.profileAvatar;
+          }
+        }
+
         const fullNamePath = await getData('fullName');
         const role = await getData('role');
         console.log(role);
         const cleanedAvatarPath = avatarPath
           ? avatarPath.replace(/"/g, '')
+          : null;
+        const cleanedAnhBiaPath = anhBiaPath
+          ? anhBiaPath.replace(/"/g, '')
           : null;
 
         if (cleanedAvatarPath) {
@@ -136,6 +242,7 @@ function Profile() {
             avatar: cleanedAvatarPath,
             fullName: fullNamePath || '',
             role: role,
+            anhBia: cleanedAnhBiaPath,
           }));
         } else {
           console.warn('No avatar found in AsyncStorage');
@@ -146,143 +253,375 @@ function Profile() {
     };
     fetchUserData();
     sendUserID();
-  }, [kpi, tasksHoanThanh, tasksRoiLich]);
+  }, [kpi, tasksHoanThanh, tasksRoiLich, avatar]);
 
   const avatarSource =
-    avatar && avatar.trim() !== ''
+    avatar && avatar.trim() !== '' && avatar !== 'null'
       ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
         ? {uri: avatar}
         : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
       : {uri: 'https://i.pravatar.cc/300'};
-      if (loading) {
-        return <Loading />;
+  console.log(avatar);
+  const handleOpenModal = () => {
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handlePasswordChange = async () => {
+    // Logic xử lý đổi mật khẩu
+    console.log('Mật khẩu mới:', newPassword);
+    if (newPassword.length < 8) {
+      Toast.show({
+        type: 'error',
+        text1: 'Mật khẩu lỗi',
+        text2: 'Mật khẩu phải lớn hơn 8 ký tự',
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+      setLoading(false);
+
+      return;
+    }
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('UserID', userId.replace(/"/g, ''));
+    formData.append('NewPassword', newPassword);
+    try {
+      const response = await axiosInstance.post(
+        '/change-password-user',
+        formData,
+        {
+          headers: {
+            Accept: '*/*',
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      console.log('Response:', response.data);
+      if (response.data.code == 200) {
+        setLoading(false);
+        setModalVisible(false);
+
+        Toast.show({
+          type: 'success',
+          text1: 'Đã đổi thành công',
+          visibilityTime: 2000,
+        });
+      } else {
+        setLoading(false);
+
+        Toast.show({
+          type: 'error',
+          text1: 'Xảy ra lỗi',
+          text2: response.data.message,
+          text2Style: {
+            fontWeight: '700',
+            color: 'black',
+          },
+          visibilityTime: 3000,
+        });
       }
+    } catch (error) {
+      setLoading(false);
+
+      Toast.show({
+        type: 'error',
+        text1: ' Đã xảy ra lỗi',
+        text2: ' Đã xảy ra lỗi',
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+    }
+  };
+  if (loading) {
+    return <Loading />;
+  }
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.profileContainer}>
-        {avatar && (
-          <>
-            <View style={styles.row}>
-              <TouchableOpacity onPress={handleImagePick}>
-              <Image source={avatarSource} style={styles.avatar} />
-
-              </TouchableOpacity>
-              <View>
-                <Text style={styles.text}>
-                  KPI:
-                   {tasksHoanThanh > 0 ? tasksHoanThanh.length : '0'}/{kpi}{' '}
-                  {kpi > 0
-                    ? `(${Math.round((tasksHoanThanh / kpi) * 100)}%)`
-                    : '(Chưa có KPI)'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.infoContainer}>
-              <Text style={styles.label}>Họ tên:</Text>
-              <Text style={styles.value}>
+    <SafeAreaView style={{flex: 1}} edges={['left', 'right', 'bottom']}>
+      {userData && (
+        <>
+          <View style={styles.container}>
+            <TouchableOpacity onPress={handleImagePickProfile}>
+            <ImageBackground
+              source={{uri: userData.anhBia}} // Set the background image here
+              style={styles.header} // Apply styles for the header
+            >
+              {/* <Text style={styles.name}>Welcome</Text>
+              <Text style={styles.userInfo}>
+                {' '}
                 {userData.fullName.replace(/"/g, '')}
-              </Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <Text style={styles.label}>Vai trò:</Text>
-              <Text style={styles.value}>
-                {userData.role
-                  .replaceAll('[', '')
-                  .replaceAll(']', '')
-                  .replaceAll('"', '')
-                  .replaceAll('\\', '')}
-              </Text>
-            </View>
-            <View style={styles.containerButton}>
-              <TouchableOpacity style={styles.button} onPress={handleLogOut}>
-                <Text style={styles.buttonText}>Đăng xuất</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      <Toast />
+              </Text> */}
+            </ImageBackground>
+            </TouchableOpacity>
+           
+            {/* <View style={styles.header}>
+             
+            </View> */}
+            <TouchableOpacity
+              style={styles.avatarBase}
+              onPress={handleImagePick}>
+              <Image style={styles.avatar} source={avatarSource} />
+            </TouchableOpacity>
+            <View style={styles.body}>
+              <ScrollView contentContainerStyle={styles.bodyContent}>
+                <View style={styles.containerRow}>
+                  <TouchableOpacity style={styles.w100}>
+                    <LinearGradient
+                      colors={['#ff7e5f', '#feb47b']}
+                      style={styles.square}>
+                      <Text style={styles.text}>
+                        Nhân viên:{' '}
+                        {userData?.fullName.replace(/"/g, '') ||
+                          'Nhân viên không tên'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
 
-      </View>
+                  <TouchableOpacity style={styles.w100}>
+                    <LinearGradient
+                      colors={['#86e3ce', '#91eae4']}
+                      style={styles.square}>
+                      <Text style={styles.text}>KPI: {kpi}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.w100}>
+                    <LinearGradient
+                      colors={['#6a11cb', '#2575fc']}
+                      style={styles.square}>
+                      <Text style={styles.text}>Task hoàn thành</Text>
+
+                      <Text style={styles.text}>
+                        {tasksHoanThanh > 0 ? tasksHoanThanh.length : '0'}/{kpi}
+                      </Text>
+                      <Text style={styles.text}>
+                        {kpi > 0
+                          ? `(${Math.round((tasksHoanThanh / kpi) * 100)}%)`
+                          : '(Chưa có KPI)'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.w100}>
+                    <LinearGradient
+                      colors={['#ff6a00', '#ee0979']}
+                      style={styles.square}>
+                      <Text style={styles.text}>Task rời lịch</Text>
+
+                      <Text style={styles.text}>
+                        {tasksRoiLich > 0 ? tasksRoiLich : '0'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.w100}
+                    onPress={handleOpenModal}>
+                    <LinearGradient
+                      colors={['#4facfe', '#00f2fe']}
+                      style={styles.square}>
+                      <Text style={styles.text}>Đổi mật khẩu</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.w100} onPress={handleLogOut}>
+                    <LinearGradient
+                      colors={['#fbc2eb', '#a6c1ee']}
+                      style={styles.square}>
+                      <Text style={styles.text}>Đăng xuất</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+          <Modal
+            visible={isModalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={handleCloseModal}>
+            <TouchableWithoutFeedback onPress={handleCloseModal}>
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nhập mật khẩu mới"
+                    secureTextEntry={true}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={handlePasswordChange}>
+                    <Text style={styles.confirmText}>Xác nhận</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={handleCloseModal}>
+                    <Text style={styles.cancelText}>Hủy</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        </>
+      )}
+      <Toast />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: 700,
-  },
-  container: {
+  inputContainer: {
     flex: 1,
-    alignItems: 'center',
-    backgroundColor: Theme.primary,
   },
-  profileContainer: {
-    alignItems: 'flex-start',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    borderWidth: 1,
+  input: {
+    width: '100%',
+    padding: 10,
     borderColor: '#ccc',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    width: '90%',
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    borderWidth: 1,
+    borderRadius: 5,
     marginBottom: 15,
   },
-  infoContainer: {
+  containerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 10,
+    padding: 10,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+  w100: {
+    width: '48%',
+    marginVertical: 10,
   },
-  value: {
-    fontSize: 16,
-    color: '#666',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  button: {
-    padding: 12,
-    marginHorizontal: 4,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#007bff',
-    alignItems: 'center',
+  square: {
+    height: 100,
     justifyContent: 'center',
-    elevation: 3, // Bóng đổ cho Android
-    shadowColor: '#000', // Bóng đổ cho iOS
-    shadowOffset: {width: 0, height: 2}, // Độ lệch của bóng
-    shadowOpacity: 0.3, // Độ mờ của bóng
-    shadowRadius: 4, // Bán kính mờ của bóng
+    alignItems: 'center',
+    marginBottom: 10,
+    borderRadius: 10,
   },
-  buttonText: {
+  text: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  container: {},
+  containerSafe: {
+    padding: 0,
+    margin: 0,
+  },
+  name: {
+    fontSize: 22,
+    color: 'black',
+    fontWeight: '600',
+    fontFamily: 'Helvetica',
+  },
+  userInfo: {
+    fontSize: 20,
+    color: 'white',
+    fontWeight: '600',
+  },
+  header: {
+    backgroundColor: '#00BFFF',
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarBase: {
+    marginBottom: 10,
+    alignSelf: 'center',
+    position: 'absolute',
+    marginTop: 130,
+  },
+  avatar: {
+    borderColor: 'white',
+
+    width: 130,
+    height: 130,
+    borderRadius: 63,
+    borderWidth: 4,
+  },
+  name: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  body: {
+    marginTop: 40,
+  },
+  bodyContent: {
+    alignItems: 'center',
+    padding: 30,
+    height: 'auto',
+  },
+  name: {
+    fontSize: 28,
+    color: '#696969',
+    fontWeight: '600',
+  },
+  info: {
     fontSize: 16,
+    color: '#00BFFF',
+    marginTop: 10,
+  },
+  description: {
+    fontSize: 16,
+    color: '#696969',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    marginTop: 10,
+    height: 45,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    width: 250,
+    borderRadius: 30,
+    backgroundColor: '#00BFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  confirmButton: {
+    backgroundColor: '#4facfe',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  confirmText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  cancelText: {
+    color: '#ff0000',
+    marginTop: 10,
   },
 });
 

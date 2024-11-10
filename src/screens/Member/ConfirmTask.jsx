@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -41,7 +43,6 @@ export default function ConfirmTask() {
     }
   };
   const confirmDueDate = () => {
-    
     setSelectedDueDate(selectedDueDate);
     setShowDuePicker(false);
   };
@@ -74,7 +75,6 @@ export default function ConfirmTask() {
     setShowConfirmButton(false);
   };
   const handleConfirmRoiLich = async () => {
-
     const stringConfirm = 'Rời lịch';
     if (reason == null || reason == '') {
       Toast.show({
@@ -92,8 +92,14 @@ export default function ConfirmTask() {
     const formattedDate = moment(selectedDueDate)
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DDTHH:mm');
-    const url = `/hoan-thanh-task?type=${encodeURIComponent(stringConfirm)}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(taskID)}&dueDate=${encodeURIComponent(formattedDate)}&lyDo=${encodeURIComponent(reason)}`;
-    console.log(url)
+    const url = `/hoan-thanh-task?type=${encodeURIComponent(
+      stringConfirm,
+    )}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(
+      taskID,
+    )}&dueDate=${encodeURIComponent(formattedDate)}&lyDo=${encodeURIComponent(
+      reason,
+    )}`;
+    console.log(url);
 
     axiosInstance
       .post(url)
@@ -128,7 +134,11 @@ export default function ConfirmTask() {
   const handleConfirmHoanThanh = async () => {
     const stringConfirm = 'Hoàn thành';
 
-    const url = `/hoan-thanh-task?type=${encodeURIComponent(stringConfirm)}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(taskID)}&linkHoanThanh=${encodeURIComponent(linkTask)}`;
+    const url = `/hoan-thanh-task?type=${encodeURIComponent(
+      stringConfirm,
+    )}&UserID=${encodeURIComponent(userID)}&TaskID=${encodeURIComponent(
+      taskID,
+    )}&linkHoanThanh=${encodeURIComponent(linkTask)}`;
     axiosInstance
       .post(url)
       .then(response => {
@@ -171,7 +181,7 @@ export default function ConfirmTask() {
       <View style={styles.containerMain}>
         <LinearGradient colors={['#C6E6F1', '#007BFF']} style={styles.header}>
           <View style={styles.statusContainer}>
-            <Text style={styles.status}>{taskData.task.status }</Text>
+            <Text style={styles.status}>{taskData.task.status}</Text>
           </View>
           <View style={styles.inputContainerHeader}>
             <Text style={styles.labelHeader}>Tiêu đề</Text>
@@ -179,12 +189,15 @@ export default function ConfirmTask() {
           </View>
         </LinearGradient>
 
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mô tả</Text>
-            <Text>{taskData.task.description}</Text>
-          </View>
-
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled">
+          <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Mô tả</Text>
+              <Text>{taskData.task.description}</Text>
+            </View>
+          </TouchableWithoutFeedback>
           <View style={styles.rowContainer}>
             <View style={styles.inputContainer}>
               <Text style={[styles.labelMore]}>Ngày tạo</Text>
@@ -211,29 +224,33 @@ export default function ConfirmTask() {
             </View>
           </View>
           {showConfirmButton && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Link sản phẩm(nếu có)</Text>
-              <TextInput
-                style={[styles.input, styles.multilineInput]}
-                placeholder="Nhập link sản phẩm(nếu có)"
-                value={linkTask}
-                multiline={true}
-                onChangeText={setLinkTask}
-              />
-            </View>
+            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Link sản phẩm(nếu có)</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  placeholder="Nhập link sản phẩm(nếu có)"
+                  value={linkTask}
+                  multiline={true}
+                  onChangeText={setLinkTask}
+                />
+              </View>
+            </TouchableWithoutFeedback>
           )}
 
           {showReasonInput && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Lý do:</Text>
-              <TextInput
-                style={[styles.input, styles.multilineInput]}
-                placeholder="Nhập lý do"
-                value={reason}
-                multiline={true}
-                onChangeText={setReason}
-              />
-            </View>
+            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Lý do:</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  placeholder="Nhập lý do"
+                  value={reason}
+                  multiline={true}
+                  onChangeText={setReason}
+                />
+              </View>
+            </TouchableWithoutFeedback>
           )}
           {showReasonInput && (
             <View style={styles.inputContainer}>
@@ -251,40 +268,40 @@ export default function ConfirmTask() {
           )}
           <View style={styles.buttonContainer}>
             {showRescheduleButton && (
-              <LinearGradient
-                colors={['#FF6F00', '#FF9800']}
-                style={styles.saveButton}>
-                <TouchableOpacity onPress={handleReschedule}>
+              <TouchableOpacity onPress={handleReschedule}>
+                <LinearGradient
+                  colors={['#FF6F00', '#FF9800']}
+                  style={styles.saveButton}>
                   <Text style={styles.buttonTextMain}>Rời lịch</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
             {showConfirmButton && (
-              <LinearGradient
-                colors={['#C6E6F1', '#C6E6F1']}
-                style={styles.saveButton}>
-                <TouchableOpacity onPress={handleConfirmHoanThanh}>
+              <TouchableOpacity onPress={handleConfirmHoanThanh}>
+                <LinearGradient
+                  colors={['#C6E6F1', '#C6E6F1']}
+                  style={styles.saveButton}>
                   <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
             {!showConfirmButton && (
-              <LinearGradient
-                colors={['#C6E6F1', '#C6E6F1']}
-                style={styles.saveButton}>
-                <TouchableOpacity onPress={handleConfirmRoiLich}>
+              <TouchableOpacity onPress={handleConfirmRoiLich}>
+                <LinearGradient
+                  colors={['#C6E6F1', '#C6E6F1']}
+                  style={styles.saveButton}>
                   <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
             {!showConfirmButton && (
-              <LinearGradient
-                colors={['#FF6F00', '#FF9800']}
-                style={styles.saveButton}>
-                <TouchableOpacity onPress={handleCancel}>
+              <TouchableOpacity onPress={handleCancel}>
+                <LinearGradient
+                  colors={['#FF6F00', '#FF9800']}
+                  style={styles.saveButton}>
                   <Text style={styles.buttonTextMain}>Huỷ</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
           </View>
           {showDuePicker && (
@@ -438,9 +455,9 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     fontSize: 30,
     fontWeight: '700',
-    flexWrap: 'wrap',  
+    flexWrap: 'wrap',
   },
-  inputMore: {  
+  inputMore: {
     fontSize: 16,
     fontWeight: '600',
   },
@@ -449,12 +466,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   statusContainer: {
-    position: 'absolute', 
-    right: 16,           
-    top: 20,             
+    position: 'absolute',
+    right: 16,
+    top: 20,
     backgroundColor: 'white',
-    borderRadius: 8,   
-    padding: 8,         
+    borderRadius: 8,
+    padding: 8,
   },
   status: {
     color: '#007BFF',

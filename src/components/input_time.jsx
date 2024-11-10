@@ -24,10 +24,10 @@ const TimePickerExample = () => {
 
       {showPicker && (
         <DateTimePicker
-          value={time} // Thời gian hiện tại
-          mode="time" // Chỉ chọn thời gian (không chọn ngày)
-          display="default" // Giao diện picker (default, spinner, clock)
-          onChange={onChange} // Xử lý khi chọn xong
+          value={time} 
+          mode="time" 
+          display="default" 
+          onChange={onChange} 
           textColor={'#000000'}
           
         />

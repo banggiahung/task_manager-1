@@ -9,7 +9,8 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -18,13 +19,15 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import moment from 'moment-timezone';
+import CheckBox from '@react-native-community/checkbox';
+
 function TaskDetail() {
   const navigation = useNavigation();
 
   const route = useRoute();
   const { task ,user} = route.params; 
   const [tasks, setTasks] = useState([
-    {taskID:task.taskID, assignedToUserID: task.assignedToUserID, title: task.title, description: task.description, createDate: new Date(task.createDate), dueDate: new Date(task.dueDate )},
+    {taskID:task.taskID, assignedToUserID: task.assignedToUserID, title: task.title, description: task.description, createDate: new Date(task.createDate), dueDate: new Date(task.dueDate), isKPI: task.isKPI},
   ]);
   useEffect(() => {
   }, [task, user]);
@@ -92,14 +95,12 @@ function TaskDetail() {
         // Tạo Date mới từ selectedCreateDate để giữ nguyên múi giờ
         const createDateMain = moment(task.createDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
         const dueDateMain = moment(task.dueDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        
-        
-    
         return {
           taskID: task.taskID,
           assignedToUserID: task.assignedToUserID,
           title: task.title,
           description: task.description,
+          isKPI: task.isKPI,
           createDate: createDateMain, 
           dueDate: dueDateMain, 
         };
@@ -145,8 +146,21 @@ function TaskDetail() {
         });
       });
   };
+  const handleToggleCheckbox = isChecked => {
+    const updatedTasks = [...tasks];
+    updatedTasks[currentIndex].isKPI = isChecked;
+    setTasks(updatedTasks);
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.checkboxContainer}>
+          <CheckBox
+            value={tasks[currentIndex].isKPI || false}
+            onValueChange={newValue => handleToggleCheckbox(newValue)}
+          />
+          <Text style={styles.checkboxLabel}>Có tính KPI</Text>
+        </View>
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
 
       <View style={styles.inputContainer}>
@@ -257,6 +271,17 @@ function TaskDetail() {
 }
 
 const styles = StyleSheet.create({
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+    paddingVertical: 8,
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
   container: {
     flex: 1,
     padding: 16,

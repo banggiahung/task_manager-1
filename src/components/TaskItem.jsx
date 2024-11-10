@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useRef} from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Theme from '../configs/color';
