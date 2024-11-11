@@ -7,7 +7,9 @@ import {
   FlatList,
   Modal,
   TouchableOpacity,
-  Keyboard
+  Keyboard,
+  Dimensions,
+  RefreshControl,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -17,12 +19,22 @@ import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
+const screenHeight = Dimensions.get('window').height;
+const containerHeight = screenHeight * 0.5;
 function TaskUserList() {
+  const flatListRef = useRef(null);
   const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [paramPage, setParamPage] = useState({});
   const route = useRoute();
   const user = route.params?.user;
+  const returnPage = route.params?.returnPage;
   const [tasks, setTasks] = useState([]);
   const [tasksHoanThanh, setTasksHoanThanh] = useState(0);
+  const [tasksHoanThanhNotKPI, setTasksHoanThanhNotKPI] = useState(0);
   const [tasksRoiLich, setTasksRoiLich] = useState(0);
   const [selectedDate, setSelectedDate] = useState(
     moment().tz('Asia/Ho_Chi_Minh').toDate(),
@@ -40,11 +52,20 @@ function TaskUserList() {
       swipeableRefs.current.forEach(ref => ref?.close());
     }
   }, [isFocused]);
+   useEffect(() => {
+    fetchTasks();
+
+   }, [user, page]);
   useFocusEffect(
     React.useCallback(() => {
-      fetchTasks();
+      // if (flatListRef.current) {
+      //   flatListRef.current.scrollToOffset({ animated: true, offset: 0 });
+      //   // handleRefresh();
+      // }
+      // handleRefresh();
+      // handleRefresh();
       sendUserID();
-    }, [user, selectedDate]),
+    }, [user, page]),
   );
   const sendUserID = async () => {
     try {
@@ -59,11 +80,15 @@ function TaskUserList() {
         },
       );
       const newData = response.data;
+      console.log(newData)
       if (newData.daHoanThanh > 0) {
         setTasksHoanThanh(newData.daHoanThanh);
       }
       if (newData.roiLich > 0) {
         setTasksRoiLich(newData.roiLich);
+      }
+      if(newData.hoanThanhNotKPI > 0){
+        setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI)
       }
       console.log('Response:', response.data);
     } catch (error) {
@@ -79,25 +104,131 @@ function TaskUserList() {
     setOpenSwipeableIndex(index);
   };
   const fetchTasks = () => {
+    console.log(page);
+    console.log(totalPage);
+    if(totalPage != 0 && page > totalPage) return;
     const formattedDate = moment(selectedDate)
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DD');
     console.log('formattedDate', formattedDate);
-    const url = `/get-list-task-user?UserID=${encodeURIComponent(
-      user.id,
-    )}&createDate=${formattedDate}`;
+    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(user.id)}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    setRefreshing(true);
+
     console.log(url);
     axiosInstance
       .get(url)
       .then(response => {
-        console.log(response.data);
-        setTasks(response.data.data);
+        setRefreshing(false);
+        const newTasks = response.data.data;
+        console.log(newTasks)
+        setTasks(prevTasks => {
+          // Đảm bảo prevTasks không phải là undefined bằng cách cung cấp một mảng trống làm giá trị mặc định
+          const uniqueNewTasks = newTasks.filter(
+            newTask => !(prevTasks || []).some(
+              existingTask => existingTask.taskID === newTask.taskID
+            ),
+          );
+        
+          // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
+          if (uniqueNewTasks.length > 0) {
+            // Kết hợp các task cũ và task mới
+            const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
+        
+            // // Lấy ngày hiện tại để sắp xếp các task theo dueDate
+            // const now = moment().startOf('day');
+        
+            // // Sắp xếp `allTasks` với điều kiện:
+            // allTasks.sort((a, b) => {
+            //   // Kiểm tra status của task
+            //   const isACompleted = a.status === "Đã giao";
+            //   const isBCompleted = b.status === "Đã giao";
+        
+            //   // Đặt các task "Đã giao" lên đầu
+            //   if (isACompleted && !isBCompleted) return -1; // `a` lên đầu
+            //   if (!isACompleted && isBCompleted) return 1;  // `b` lên đầu
+        
+            //   // Nếu cả hai task đều chưa hoặc đều đã "Đã giao", sắp xếp theo `dueDate`
+            //   const aDueDate = moment(a.dueDate, 'YYYY-MM-DD');
+            //   const bDueDate = moment(b.dueDate, 'YYYY-MM-DD');
+        
+            //   // Sắp xếp các task chưa "Đã giao" theo `dueDate` gần nhất trước
+            //   return aDueDate.diff(bDueDate);
+            // });
+        
+            return allTasks;
+          }
+        
+          // Nếu không có task mới, trả về prevTasks hiện tại
+          return prevTasks || [];
+        });
+        setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+
+        // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
+        // if (uniqueNewTasks.length > 0) {
+        //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
+        //   setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+        // }
       })
       .catch(error => {
+        setRefreshing(false);
+
         console.error('Error fetching tasks:', error);
       });
   };
+  const fetchTasksRefresh = () => {
+    setPage(1); 
+    
+  
+    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(user.id)}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    setRefreshing(true);
 
+    console.log(url);
+    axiosInstance
+      .get(url)
+      .then(response => {
+        setRefreshing(false);
+        const newTasks = response.data.data;
+        console.log(newTasks)
+        setTasks(() => {
+          // Xóa hết các task cũ và thêm task mới
+          const allTasks = [...newTasks];
+  
+          // Lấy ngày hiện tại
+          // const now = moment().startOf('day');
+        
+          //   // Sắp xếp `allTasks` với điều kiện:
+          //   allTasks.sort((a, b) => {
+          //     // Kiểm tra status của task
+          //     const isACompleted = a.status === "Đã giao";
+          //     const isBCompleted = b.status === "Đã giao";
+        
+          //     // Đặt các task "Đã giao" lên đầu
+          //     if (isACompleted && !isBCompleted) return -1; // `a` lên đầu
+          //     if (!isACompleted && isBCompleted) return 1;  // `b` lên đầu
+        
+          //     // Nếu cả hai task đều chưa hoặc đều đã "Đã giao", sắp xếp theo `dueDate`
+          //     const aDueDate = moment(a.dueDate, 'YYYY-MM-DD');
+          //     const bDueDate = moment(b.dueDate, 'YYYY-MM-DD');
+        
+          //     // Sắp xếp các task chưa "Đã giao" theo `dueDate` gần nhất trước
+          //     return aDueDate.diff(bDueDate);
+          //   });
+        
+            return allTasks;
+        });
+        setTotalPage(response.data.pagination.totalPages); 
+        // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
+        // if (uniqueNewTasks.length > 0) {
+        //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
+        //   setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+        // }
+      })
+      .catch(error => {
+        setRefreshing(false);
+
+        console.error('Error fetching tasks:', error);
+      });
+  };
   const onDateChange = (event, selected) => {
     if (event.type === 'set') {
       const adjustedDate = selected ? new Date(selected) : tempDate;
@@ -127,12 +258,12 @@ function TaskUserList() {
             visibilityTime: 2000,
           });
           setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks]; 
+            const updatedTasks = [...prevTasks];
             const index = updatedTasks.findIndex(
               task => task.taskID === taskId,
             );
             if (index !== -1) {
-              updatedTasks.splice(index, 1); 
+              updatedTasks.splice(index, 1);
             }
             return updatedTasks;
           });
@@ -153,17 +284,25 @@ function TaskUserList() {
         console.error('Error fetching tasks:', error);
       });
   };
-  const handleDetailsTask = (type)=>{
-    navigation.navigate("TaskListHandle", {
+  const handleDetailsTask = type => {
+    navigation.navigate('TaskListHandle', {
       user: user,
       taskType: type,
     });
-  } 
+  };
   // Định dạng ngày cho hiển thị
   const formattedSelectedDate = moment(selectedDate)
     .tz('Asia/Ho_Chi_Minh')
     .format('DD-MM-YYYY');
-
+  const handleLoadMore = () => {
+    if (page < totalPage) {
+      setPage(prevPage => prevPage + 1);
+    }
+  };
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchTasksRefresh(); // Tải dữ liệu từ trang đầu tiên
+  };
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <View style={styles.container}>
@@ -186,14 +325,16 @@ function TaskUserList() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.w100}  onPress={() => handleDetailsTask("Hoàn thành")} >
+          <TouchableOpacity
+            style={styles.w100}
+            onPress={() => handleDetailsTask('Hoàn thành')}>
             <LinearGradient
               colors={['#6a11cb', '#2575fc']}
               style={styles.square}>
               <Text style={styles.text}>Task hoàn thành</Text>
 
               <Text style={styles.text}>
-                {tasksHoanThanh > 0 ? tasksHoanThanh.length : '0'}/
+                {tasksHoanThanhNotKPI >= 0 ? tasksHoanThanhNotKPI : '0'}/
                 {user?.kpiUser}
               </Text>
               <Text style={styles.text}>
@@ -203,7 +344,9 @@ function TaskUserList() {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.w100}  onPress={() => handleDetailsTask("Rời lịch")} >
+          <TouchableOpacity
+            style={styles.w100}
+            onPress={() => handleDetailsTask('Rời lịch')}>
             <LinearGradient
               colors={['#ff6a00', '#ee0979']}
               style={styles.square}>
@@ -217,7 +360,7 @@ function TaskUserList() {
         </View>
 
         <View style={styles.buttonContainer}>
-          <Button title="Chọn ngày" onPress={() => setShowDatePicker(true)} />
+          {/* <Button title="Chọn ngày" onPress={() => setShowDatePicker(true)} /> */}
           <Button
             title="Thêm Task"
             onPress={() => navigation.navigate('ImportTask', {user})}
@@ -248,14 +391,17 @@ function TaskUserList() {
         {tasks == null || tasks.length === 0 ? (
           <View>
             <Text style={styles.noTasksText}>
-              Ngày {formattedSelectedDate} không có task nào của {user.fullName}
+              Không có task nào của {user.fullName}
             </Text>
           </View>
         ) : (
           <View style={styles.listItem}>
             <FlatList
+            ref={flatListRef}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
               data={tasks}
-              keyExtractor={item => item.taskID.toString()}
+              keyExtractor={item => item.taskID}
               renderItem={({item, index}) => {
                 const renderRightActions = () => (
                   <TouchableOpacity
@@ -293,15 +439,23 @@ function TaskUserList() {
                         })
                       }>
                       <View style={styles.taskContent}>
-                        <Text style={styles.taskTitle}>{item.title}</Text>
-                        <Text style={styles.taskDescription}>
+                        <Text
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                          style={styles.taskTitle}>
+                          {item.title}
+                        </Text>
+                        <Text
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                          style={styles.taskDescription}>
                           {item.description}
                         </Text>
                       </View>
 
                       <View style={styles.rightContent}>
                         <Text style={styles.createDateText}>
-                          {moment(item.createDate)
+                          {moment(item.dueDate)
                             .tz('Asia/Ho_Chi_Minh')
                             .format('HH:mm DD-MM-YYYY')}
                         </Text>
@@ -313,6 +467,10 @@ function TaskUserList() {
                   </Swipeable>
                 );
               }}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.1}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
             />
           </View>
         )}
@@ -323,6 +481,10 @@ function TaskUserList() {
 }
 
 const styles = StyleSheet.create({
+  listItem: {
+    height: containerHeight,
+    paddingBottom: 20,
+  },
   containerRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -396,9 +558,11 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontWeight: 'bold',
     fontSize: 16,
+    maxWidth: '80%',
   },
   taskDescription: {
     color: '#666',
+    maxWidth: '80%',
   },
   statusContainer: {
     backgroundColor: '#007bff',

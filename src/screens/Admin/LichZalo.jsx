@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTask: {
-    width: '100',
+    width: '100%',
     flex: 1,
     backgroundColor: '#add8e8',
     padding: 16,

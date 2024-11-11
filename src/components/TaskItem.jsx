@@ -9,7 +9,7 @@ function TaskItem({ task, isSelected = false }) {
   const navigation = useNavigation();
 
   const descriptionWithoutPreTags = task.description.replace(/<pre[^>]*>|<\/pre>/g, '');
-  const isToday = moment().isSame(moment(task.datetimeTask), 'day');
+  const isToday = moment().tz('Asia/Ho_Chi_Minh').isSame(moment(task.datetimeTask), 'day');
   return (
     <View style={isSelected ? [styles.container, styles.active] : [styles.container, styles.empty]}>
     <Text style={styles.title}>{task.title}</Text>

@@ -9,7 +9,7 @@ import {
   Keyboard,
   Dimensions,
   TextInput,
-  Modal
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Header from '../../components/Header';
@@ -37,9 +37,12 @@ function ListTask() {
   const [prevSunday, setPrevSunday] = React.useState(moment());
 
   const getWeekOfMonth = date => {
-    const weekOfMonth = moment(date).isoWeek();
-    const startOfMonth = moment(date).startOf('month').isoWeek();
-    return weekOfMonth - startOfMonth + 1; // Return the week number in the month
+    console.log(date)
+    const newDate = moment(date).add(1, 'day')
+
+    const weekOfMonth = moment(newDate).isoWeek();
+    const startOfMonth = moment(newDate).startOf('month').isoWeek();
+    return weekOfMonth - startOfMonth; // Return the week number in the month
   };
   const [firstDate, setFirstDate] = React.useState(() => {
     // Lấy ngày hôm nay
@@ -62,29 +65,39 @@ function ListTask() {
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
     setShowMakePicker(false);
-    createWeekData(0)
+    createWeekData(0);
   };
-  const createWeekData = async (weekOffset = 0) => {
+  const createWeekData = async (weekOffset = 0, choseDate) => {
+    let startDate;
+    if (choseDate) {
+      console.log('choseDate', choseDate);
+
+      startDate = moment(choseDate).tz('Asia/Ho_Chi_Minh').startOf('day');
+    } else {
+      console.log('firstDate', firstDate);
+
+      startDate = moment(firstDate).tz('Asia/Ho_Chi_Minh').startOf('day');
+    }
     // Sử dụng firstDate (ngày bắt đầu) thay vì startOf('isoWeek')
-    const startDate = moment(firstDate).tz('Asia/Ho_Chi_Minh').startOf('day');
-  
-    const dayOfWeek = startDate.isoWeekday(); 
-  
+    const dayOfWeek = startDate.isoWeekday();
 
     if (dayOfWeek !== 1) {
       startDate.subtract(dayOfWeek - 1, 'days');
     }
-  
+
     const startOfWeek = startDate.clone();
     const endOfWeek = startDate.clone().add(6, 'days'); // Lấy ngày Chủ nhật
-  
+
     setFirstDate(new Date(startOfWeek.format('YYYY-MM-DDTHH:mm:ss')));
     setLastDate(new Date(endOfWeek.format('YYYY-MM-DDTHH:mm:ss')));
-  
+
     console.log('Ngày đầu tuần:', startOfWeek.format('YYYY-MM-DD'));
     console.log('Ngày cuối tuần:', endOfWeek.format('YYYY-MM-DD'));
-    await fetchTasks(startOfWeek.format('YYYY-MM-DD'),endOfWeek.format('YYYY-MM-DD'))
-    updateWeek(startOfWeek)
+    fetchTasks(
+      startOfWeek.format('YYYY-MM-DD'),
+      endOfWeek.format('YYYY-MM-DD'),
+    );
+    updateWeek(startOfWeek.format('YYYY-MM-DD'));
   };
 
   // State for week and month numbers
@@ -107,27 +120,27 @@ function ListTask() {
       setPrevMonday(thuHaiPlusOne);
       setPrevSunday(chuNhatPlusOne);
       // Cập nhật tuần và tháng ngay tại đây
-      updateWeek(newWeek);
       fetchTasks(thuHai, chuNhat);
-      setFirstDate(new Date(thuHai))
+      setFirstDate(new Date(thuHai));
       // Trả về tuần mới
       return newWeek;
     });
-
   };
   const updateWeek = async date => {
-    const newDate = moment(date).subtract(1, 'week');
+    console.log("date",date)
+    const newDate = moment(date).add(1, 'day')
+    // Lấy số tuần trong tháng và tháng từ adjustedDate
     const newWeekNumber = getWeekOfMonth(newDate);
     const newMonthNumber = newDate.month() + 1;
-    console.log(newWeekNumber);
+    console.log("newWeekNumber",newWeekNumber);
     // Cập nhật tuần và tháng
     setWeekNumber(newWeekNumber);
     setMonthNumber(newMonthNumber);
   };
-  React.useEffect(() => {
-    console.log('State updated:', { firstDate, weekNumber, monthNumber });
-  }, [firstDate, weekNumber, monthNumber,currentWeek]); 
+  React.useEffect(() => {}, [firstDate, weekNumber, monthNumber, currentWeek]);
   const fetchTasks = async (startDate, endDate) => {
+    updateWeek(startDate);
+
     console.log(startDate);
     console.log(endDate);
     try {
@@ -141,6 +154,7 @@ function ListTask() {
         },
       );
       if (response.data.code == 200) {
+        console.log('đây là data', response.data.data);
         setTask(response.data.data);
       } else {
         setTask([]);
@@ -164,12 +178,13 @@ function ListTask() {
   };
   const handleCurrentWeek = async () => {
     try {
-      const currentWeekMoment = moment().tz('Asia/Ho_Chi_Minh').startOf('week');
+      const currentWeekMoment = moment().tz('Asia/Ho_Chi_Minh');
+      console.log('currentWeekMoment', currentWeekMoment);
       setCurrentWeek(currentWeekMoment);
       setWeekNumber(getWeekOfMonth(currentWeekMoment));
       setMonthNumber(currentWeekMoment.month() + 1);
-      setFirstDate(new Date(currentWeekMoment))
-      await fetchTasksWeek();
+      setFirstDate(currentWeekMoment);
+      await createWeekData(0, currentWeekMoment);
     } catch (error) {
       console.error('Lỗi khi gọi API cho tuần hiện tại:', error);
     }
@@ -181,7 +196,7 @@ function ListTask() {
 
   useFocusEffect(
     React.useCallback(() => {
-      handleCurrentWeek();
+      // handleCurrentWeek()
     }, []),
   );
   React.useEffect(() => {
@@ -189,19 +204,19 @@ function ListTask() {
     const todayTask = tasks.find(task =>
       moment().isSame(moment(task.datetimeTask), 'day'),
     );
-  
+
     if (scrollViewRef.current) {
       if (todayTask) {
         // Nếu tìm thấy task có isToday, cuộn đến phần tử đó
         const todayIndex = tasks.indexOf(todayTask);
-        scrollViewRef.current.scrollTo({ y: todayIndex * 100, animated: true }); // Điều chỉnh giá trị y nếu cần
+        scrollViewRef.current.scrollTo({y: todayIndex * 100, animated: true}); // Điều chỉnh giá trị y nếu cần
       } else {
         // Nếu không tìm thấy task có isToday, cuộn lên đầu
-        scrollViewRef.current.scrollTo({ y: 0, animated: true });
+        scrollViewRef.current.scrollTo({y: 0, animated: true});
       }
     }
   }, [tasks]);
-  
+
   // Calculate the current week of the month
 
   return (

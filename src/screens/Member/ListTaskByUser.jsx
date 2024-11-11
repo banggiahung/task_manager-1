@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback,useRef} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Keyboard
+  Keyboard,
+  Dimensions,
+  RefreshControl,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -21,12 +23,19 @@ import DayItem from '../../components/DayItem';
 import Loading from '../../components/Loading';
 import Theme from '../../configs/color';
 import {storeData, getData} from '../../configs/asyncStorage.js';
-
+const screenHeight = Dimensions.get('window').height;
+const containerHeight = screenHeight * 0.6;
 import * as FeatherIcons from 'react-native-feather';
 function ListTaskByUser() {
   const scrollViewRef = useRef(null);
 
   const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshingTest, setRefreshingTest] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(4);
+  const [paramPage, setParamPage] = useState({});
   const route = useRoute();
   const userId = route.params?.userId;
   // const userId = '0185bf98-a75e-44ed-a9b6-7ff495fa610e';
@@ -43,32 +52,64 @@ function ListTaskByUser() {
   );
   const [selectedDateHeader, setSelectedDateHeader] = useState(null);
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
+      if (page == totalPage) {
+        setPage(1);
+      }
       fetchTasks();
-    }, [userId, selectedDate]),
+    }, [page]),
   );
-
+  // useEffect(() => {
+  //   fetchTasks();
+  // }, [userId,page]);
   const fetchTasks = async () => {
-    setLoading(true);
+    console.log('totalPage', totalPage);
+    console.log('page', page);
+    if (totalPage != 0 && page > totalPage) return;
+    // const formattedDate = moment(selectedDate)
+    //   .tz('Asia/Ho_Chi_Minh')
+    //   .format('YYYY-MM-DD');
 
-    const formattedDate = moment(selectedDate)
-      .tz('Asia/Ho_Chi_Minh')
-      .format('YYYY-MM-DD');
-
-    const url = `/get-list-task-user?UserID=${userId.replace(/"/g, '')}&createDate=${formattedDate}`;
+    // const url = `/get-list-task-user?UserID=${userId.replace(
+    //   /"/g,
+    //   '',
+    // )}&createDate=${formattedDate}`;
+    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
+      userId.replace(/"/g, ''),
+    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
     console.log(url);
-    axiosInstance
-      .get(url)
-      .then(response => {
-        setLoading(false);
+    setRefreshing(true);
+    const response = await axiosInstance.get(url);
 
-        setTasks(response.data.data);
-      })
-      .catch(error => {
-        setLoading(false);
+    setRefreshing(false);
 
-        console.error('Error fetching tasks:', error);
-      });
+    console.log(response.data);
+    const newTasks = response.data.data;
+
+    // Lọc ra những task mới mà chưa có trong danh sách `tasks` dựa trên `taskID`
+    setTasks(prevTasks => {
+      // Lọc ra những task mới mà chưa có trong danh sách `prevTasks` dựa trên `taskID`
+      const uniqueNewTasks = newTasks.filter(
+        newTask =>
+          !prevTasks.some(
+            existingTask => existingTask.taskID === newTask.taskID,
+          ),
+      );
+
+      // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
+      if (uniqueNewTasks.length > 0) {
+        // Kết hợp các task cũ và task mới
+        const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
+
+        return allTasks;
+      }
+
+      // Nếu không có task mới, trả về prevTasks hiện tại
+      return prevTasks || [];
+    });
+
+    // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
+    setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
   };
 
   const onDateChange = (event, selected) => {
@@ -147,7 +188,9 @@ function ListTaskByUser() {
     console.log(day);
   };
   useEffect(() => {
-    const activeIndex = daysOfWeekWithDates.findIndex(day => day.isoDate === selectedDate);
+    const activeIndex = daysOfWeekWithDates.findIndex(
+      day => day.isoDate === selectedDate,
+    );
     if (activeIndex !== -1 && scrollViewRef.current) {
       const itemWidth = 90;
       const scrollPosition = itemWidth * activeIndex - itemWidth * 2; // 3 ở đây là số item hiển thị ở mỗi bên
@@ -157,7 +200,7 @@ function ListTaskByUser() {
         animated: true,
       });
     }
-  }, [daysOfWeekWithDates,selectedDate]);
+  }, [daysOfWeekWithDates, selectedDate]);
   const getVietnameseDayName = dayName => {
     switch (dayName.trim()) {
       case 'Monday':
@@ -188,6 +231,57 @@ function ListTaskByUser() {
         return moment(a.dueDate).diff(moment(b.dueDate));
       })
     : [];
+  const handleLoadMore = async () => {
+    if (page < totalPage) {
+      setPage(prevPage => prevPage + 1);
+    }
+  };
+  const fetchTasksRefresh = async () => {
+    setPage(1);
+
+    console.log(page);
+    if (totalPage != 0 && page > totalPage) return;
+    const formattedDate = moment(selectedDate)
+      .tz('Asia/Ho_Chi_Minh')
+      .format('YYYY-MM-DD');
+    console.log('formattedDate', formattedDate);
+    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
+      userId.replace(/"/g, ''),
+    )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    setRefreshing(true);
+    console.log(url);
+    axiosInstance
+      .get(url)
+      .then(response => {
+        setRefreshing(false);
+        const newTasks = response.data.data;
+        setTotalPage(response.data.pagination.totalPages);
+
+        console.log(newTasks);
+        setTasks(() => {
+          // Xóa hết các task cũ và thêm task mới
+          const allTasks = [...newTasks];
+
+          // Lấy ngày hiện tại
+
+          return allTasks;
+        });
+        // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
+        // if (uniqueNewTasks.length > 0) {
+        //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
+        //   setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+        // }
+      })
+      .catch(error => {
+        setRefreshing(false);
+
+        console.error('Error fetching tasks:', error);
+      });
+  };
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    fetchTasksRefresh();
+  };
   if (loading) {
     return <Loading />;
   }
@@ -196,7 +290,10 @@ function ListTaskByUser() {
       {/* const isActive = date === today || date === selectedDateHeader; */}
 
       <View style={styles.monthContainer}>
-        <ScrollView ref={scrollViewRef} horizontal={true} showsHorizontalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}>
           {daysOfWeekWithDates.map((dayObj, index) => {
             const vietnameseDayName = getVietnameseDayName(
               dayObj.displayDate.split(',')[0],
@@ -205,7 +302,8 @@ function ListTaskByUser() {
             return (
               <TouchableOpacity
                 key={index}
-                onPress={() => onDayPress(dayObj.isoDate)}>
+                // onPress={() => onDayPress(dayObj.isoDate)}
+              >
                 <View style={[styles.dayContainer, isActive && styles.active]}>
                   <Text style={styles.dayText}>
                     {dayObj.displayDate.split(',')[1].trim()}
@@ -220,7 +318,7 @@ function ListTaskByUser() {
       <View style={styles.container}>
         <View style={styles.buttonContainer}>
           {/* <Button title="Chọn ngày" onPress={() => setShowDatePicker(true)} /> */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.button}
             onPress={() =>
               setSelectedDate(
@@ -228,8 +326,7 @@ function ListTaskByUser() {
               )
             }>
             <Text style={styles.buttonText}>Hôm nay</Text>
-            
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <Text style={styles.choose}>Ngày {formattedSelectedDate}</Text>
         </View>
 
@@ -262,7 +359,9 @@ function ListTaskByUser() {
         ) : (
           <View style={styles.listItem}>
             <FlatList
-              data={sortedTasks}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              data={tasks}
               keyExtractor={item => item.taskID.toString()}
               renderItem={({item}) => {
                 const renderRightActions = () => (
@@ -286,9 +385,9 @@ function ListTaskByUser() {
 
                 return (
                   <Swipeable
-                    // renderLeftActions={renderLeftActions}
-                    // renderRightActions={renderRightActions}
-                    >
+                  // renderLeftActions={renderLeftActions}
+                  // renderRightActions={renderRightActions}
+                  >
                     <TouchableOpacity
                       style={styles.taskItem}
                       onPress={() =>
@@ -315,8 +414,16 @@ function ListTaskByUser() {
                         </View>
                         <View style={styles.rightContent}>
                           <View style={styles.containerItemMain}>
-                            <Text style={styles.taskTitle}>{item.title}</Text>
-                            <Text style={styles.taskDescription}>
+                            <Text
+                              numberOfLines={2}
+                              ellipsizeMode="tail"
+                              style={styles.taskTitle}>
+                              {item.title}
+                            </Text>
+                            <Text
+                              numberOfLines={2}
+                              ellipsizeMode="tail"
+                              style={styles.taskDescription}>
                               {item.description}
                             </Text>
                           </View>
@@ -330,6 +437,10 @@ function ListTaskByUser() {
                   </Swipeable>
                 );
               }}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.1}
+              refreshing={refreshing}
+              // onRefresh={handleRefresh}
             />
           </View>
         )}
@@ -340,7 +451,11 @@ function ListTaskByUser() {
 }
 
 const styles = StyleSheet.create({
-  containerItemMain:{
+  listItem: {
+    height: containerHeight,
+    paddingBottom: 20,
+  },
+  containerItemMain: {
     flex: 1,
   },
   monthContainer: {
@@ -408,9 +523,11 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontWeight: 'bold',
     fontSize: 16,
+    maxWidth: '80%',
   },
   taskDescription: {
     color: '#666',
+    maxWidth: '80%',
   },
   statusContainer: {
     backgroundColor: '#007bff',
@@ -475,11 +592,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   arrowContainer: {
-    justifyContent: 'center', 
+    justifyContent: 'center',
     alignItems: 'center',
   },
   arrowText: {
-    fontSize: 10, 
+    fontSize: 10,
     color: 'black',
   },
   rightContent: {

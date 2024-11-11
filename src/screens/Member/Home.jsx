@@ -6,9 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
+  RefreshControl,
 } from 'react-native';
 
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation,useFocusEffect} from '@react-navigation/native';
 import axiosInstance from '../../configs/axios';
 import {storeData, getData} from '../../configs/asyncStorage';
 import Header from '../../components/Header';
@@ -17,6 +19,8 @@ import Theme from '../../configs/color';
 import moment from 'moment';
 import * as FeatherIcons from 'react-native-feather';
 
+const screenHeight = Dimensions.get('window').height;
+const containerHeight = screenHeight * 0.7;
 function Home() {
   const [userId, setUserId] = useState(null);
   const navigation = useNavigation();
@@ -39,24 +43,75 @@ function Home() {
     console.log(storedUserId);
     setUserId(storedUserId);
   };
+  const [firstDate, setFirstDate] = useState(() => {
+    const today = moment().tz('Asia/Ho_Chi_Minh');
 
-  const fetchTaskTongQuan = async () => {
-    await axiosInstance.get(`/tasks-for-week`).then(res => {
-      console.log(res.data.data);
-      setTotalTask(res.data.data);
-      if (scrollViewRef.current) {
-        const todayTaskIndex = totalTask.findIndex(item =>
-          moment().isSame(moment(item.datetimeTask), 'day'),
-        );
+    const firstDayOfWeek = today.startOf('isoWeek');
 
-        if (todayTaskIndex !== -1) {
-          scrollViewRef.current.scrollTo({
-            y: todayTaskIndex * 100,
-            animated: true,
-          });
-        }
+    return firstDayOfWeek.toDate();
+  });
+  const [lastDate, setLastDate] = useState(new Date());
+  const createWeekData = async (weekOffset = 0) => {
+    // Sử dụng firstDate (ngày bắt đầu) thay vì startOf('isoWeek')
+    const startDate = moment(firstDate).tz('Asia/Ho_Chi_Minh').startOf('day');
+
+    const dayOfWeek = startDate.isoWeekday();
+
+    if (dayOfWeek !== 1) {
+      startDate.subtract(dayOfWeek - 1, 'days');
+    }
+
+    const startOfWeek = startDate.clone();
+    const endOfWeek = startDate.clone().add(6, 'days'); // Lấy ngày Chủ nhật
+
+    setFirstDate(new Date(startOfWeek.format('YYYY-MM-DDTHH:mm:ss')));
+    setLastDate(new Date(endOfWeek.format('YYYY-MM-DDTHH:mm:ss')));
+
+    console.log('Ngày đầu tuần:', startOfWeek.format('YYYY-MM-DD'));
+    console.log('Ngày cuối tuần:', endOfWeek.format('YYYY-MM-DD'));
+    await fetchTaskTongQuan(
+      startOfWeek.format('YYYY-MM-DD'),
+      endOfWeek.format('YYYY-MM-DD'),
+    );
+  };
+  const fetchTaskTongQuan = async (startDate, endDate) => {
+    console.log(startDate);
+    console.log(endDate);
+    try {
+      const response = await axiosInstance.post(
+        `/search-task-tong-quan?startDate=${startDate}&endDate=${endDate}`,
+        {},
+        {
+          headers: {
+            accept: '*/*',
+          },
+        },
+      );
+      console.log(response.data)
+      if (response.data.code == 200) {
+        setTotalTask(response.data.data);
+      } else {
+        setTotalTask([]);
+
       }
-    });
+    } catch (error) {
+      console.error('Lỗi khi gọi API:', error);
+    }
+    // await axiosInstance.get(`/tasks-for-week`).then(res => {
+    //   console.log(res.data.data);
+    //   if (scrollViewRef.current) {
+    //     const todayTaskIndex = totalTask.findIndex(item =>
+    //       moment().isSame(moment(item.datetimeTask), 'day'),
+    //     );
+
+    //     if (todayTaskIndex !== -1) {
+    //       scrollViewRef.current.scrollTo({
+    //         y: todayTaskIndex * 100,
+    //         animated: true,
+    //       });
+    //     }
+    //   }
+    // });
   };
   const fetchTaskUser = async () => {
     // if (userId) {
@@ -69,10 +124,15 @@ function Home() {
     // }
     navigation.navigate('ListTaskByUser', {userId: userId});
   };
-  useEffect(() => {
-    fetchData();
-    fetchTaskTongQuan();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, []),
+  );
+   useEffect(() => {
+    createWeekData();
+   
+   }, []);
   const handlePress = async () => {
     const role = await getData('role');
     const cleanRole = role
@@ -107,7 +167,10 @@ function Home() {
         </View>
 
         <View style={styles.container}>
-          <ScrollView ref={scrollViewRef} style={styles.taskContainer}>
+          <ScrollView
+            contentContainerStyle={styles.paddingScoll}
+            ref={scrollViewRef}
+            style={styles.taskContainer}>
             {totalTask && totalTask.length > 0 ? (
               totalTask.map((item, index) => (
                 <TaskItem task={item} key={index} />
@@ -123,6 +186,9 @@ function Home() {
 }
 
 const styles = StyleSheet.create({
+  paddingScoll: {
+    paddingBottom: 90,
+  },
   noDataText: {
     textAlign: 'center',
     fontSize: 16,
@@ -167,10 +233,10 @@ const styles = StyleSheet.create({
     color: '#2C5364',
   },
   container: {
-    minHeight: 800,
+    height: containerHeight,
+    paddingBottom: 20,
     padding: 16,
     borderRadius: 40,
-    overflow: 'hidden',
     backgroundColor: Theme.primary,
   },
   taskContainer: {

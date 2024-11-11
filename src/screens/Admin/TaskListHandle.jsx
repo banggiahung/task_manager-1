@@ -8,7 +8,7 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Keyboard
+  Keyboard,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -25,7 +25,7 @@ function TaskListHandle() {
   const navigation = useNavigation();
   const route = useRoute();
   const {user, taskType} = route.params;
-  console.log(user)
+  console.log(user);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const isFocused = useIsFocused();
@@ -38,34 +38,27 @@ function TaskListHandle() {
     filterAndSortTasks();
   }, [searchQuery, sortOrder, tasks]);
   const filterAndSortTasks = () => {
-    setLoading(true); 
+    setLoading(true);
     let updatedTasks = [...tasks];
 
     // Lọc task theo search query
     if (searchQuery) {
-
       updatedTasks = updatedTasks.filter(task =>
         task.title.toLowerCase().includes(searchQuery.toLowerCase()),
       );
-
     }
 
     // Sắp xếp task
     updatedTasks.sort((a, b) => {
-
       if (sortOrder === 'newest') {
-
         return new Date(b.createDate) - new Date(a.createDate);
-        
       } else {
         return new Date(a.createDate) - new Date(b.createDate);
       }
-
     });
 
     setFilteredTasks(updatedTasks);
-    setLoading(false); 
-
+    setLoading(false);
   };
   useEffect(() => {
     if (isFocused) {
@@ -76,16 +69,16 @@ function TaskListHandle() {
   const fetchData = async () => {
     try {
       let url = '';
-  
+
       if (taskType === 'Hoàn thành') {
         url = `/get-thong-ke/hoan-thanh?UserID=${user?.id}`;
       } else {
         url = `/get-thong-ke/roi-lich?UserID=${user?.id}`;
       }
-  
+
       const response = await axiosInstance.get(url);
       const newData = response.data;
-  
+
       // Kiểm tra và gán dữ liệu dựa trên phản hồi
       if (newData?.daHoanThanh) {
         setTasks(newData.daHoanThanh || []);
@@ -94,9 +87,9 @@ function TaskListHandle() {
       }
     } catch (error) {
       console.error('Error sending UserID:', error);
-    } 
+    }
   };
-  
+
   useFocusEffect(
     React.useCallback(() => {
       fetchData();
@@ -229,17 +222,22 @@ function TaskListHandle() {
                       }>
                       <View style={styles.taskContent}>
                         <Text style={styles.taskTitle}>{item.title}</Text>
-                        <Text style={styles.taskDescription}>
-                          Lý do: {item.comments.comment}
-                        </Text>
+                        {item.comments?.comment && (
+                          <Text style={styles.taskDescription}>
+                            Lý do: {item.comments.comment}
+                          </Text>
+                        )}
                       </View>
 
                       <View style={styles.rightContent}>
-                        <Text style={styles.createDateText}>
-                          {moment(item.comments.createdAt)
-                            .tz('Asia/Ho_Chi_Minh')
-                            .format('HH:mm DD-MM-YYYY')}
-                        </Text>
+                        {item.comments?.comment && (
+                          <Text style={styles.createDateText}>
+                            {moment(item.comments.createdAt)
+                              .tz('Asia/Ho_Chi_Minh')
+                              .format('HH:mm DD-MM-YYYY')}
+                          </Text>
+                        )}
+
                         <View style={styles.statusContainer}>
                           <Text style={styles.statusText}>{item.status}</Text>
                         </View>
@@ -394,7 +392,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: '#fff', 
+    backgroundColor: '#fff',
     fontSize: 16,
   },
   button: {

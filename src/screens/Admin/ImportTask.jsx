@@ -101,12 +101,12 @@ function ImportTask() {
       const dueDateMain = moment(task.dueDate)
         .tz('Asia/Ho_Chi_Minh')
         .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-
+        const taskDescription = task.description || "Không có mô tả";
       // Trả về đối tượng với các thuộc tính đã được định dạng
       return {
         assignedToUserID: task.assignedToUserID,
         title: task.title,
-        description: task.description,
+        description: taskDescription,
         createDate: createDateMain,
         dueDate: dueDateMain,
         isKPI: task.isKPI,

@@ -57,19 +57,24 @@ function Dashboard() {
   };
   const fetchUsers = async () => {
     try {
-      setRefreshing(true); // Bắt đầu refreshing
+      setRefreshing(true);
       const res = await axiosInstance.get('/get-list-user');
       const data = res.data;
       if (data.code !== 200) {
         return;
       }
       setListUser(data.data);
+
     } catch (error) {
+
       console.log(error);
     } finally {
       setRefreshing(false);
     }
   };
+  // useEffect(() => {
+  //   fetchUsers();
+  // },[list_user])
   useFocusEffect(
     React.useCallback(() => {
       fetchUsers();

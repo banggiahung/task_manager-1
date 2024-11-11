@@ -27,7 +27,7 @@ function TaskDetail() {
   const route = useRoute();
   const { task ,user} = route.params; 
   const [tasks, setTasks] = useState([
-    {taskID:task.taskID, assignedToUserID: task.assignedToUserID, title: task.title, description: task.description, createDate: new Date(task.createDate), dueDate: new Date(task.dueDate), isKPI: task.isKPI},
+    {taskID:task.taskID, assignedToUserID: task.assignedToUserID, title: task.title, description: task.description || "Không có mô tả", createDate: new Date(task.createDate), dueDate: new Date(task.dueDate), isKPI: task.isKPI},
   ]);
   useEffect(() => {
   }, [task, user]);
@@ -95,18 +95,21 @@ function TaskDetail() {
         // Tạo Date mới từ selectedCreateDate để giữ nguyên múi giờ
         const createDateMain = moment(task.createDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
         const dueDateMain = moment(task.dueDate).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        const taskDescription = task.description || "Không có mô tả";
+       
         return {
           taskID: task.taskID,
           assignedToUserID: task.assignedToUserID,
           title: task.title,
-          description: task.description,
+          description: taskDescription,
           isKPI: task.isKPI,
           createDate: createDateMain, 
           dueDate: dueDateMain, 
         };
       });
-    
-    axiosInstance
+      console.log(dataToSend)
+    try{
+      axiosInstance
       .post('/edit-task-user', dataToSend)
       .then(res => {
 
@@ -115,10 +118,7 @@ function TaskDetail() {
             type: 'success',
             text1: 'Đã sửa thành công',
             visibilityTime: 2000,
-            onHide: () => {
-                GoToTaskList();
-                
-            },
+            
           });
         } else {
           Toast.show({
@@ -145,6 +145,19 @@ function TaskDetail() {
           visibilityTime: 3000,
         });
       });
+    }catch{
+      Toast.show({
+        type: 'error',
+        text1: "Xảy ra lỗi",
+        text2: "Vui lòng thử lại",
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+    }
+   
   };
   const handleToggleCheckbox = isChecked => {
     const updatedTasks = [...tasks];

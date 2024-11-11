@@ -10,7 +10,9 @@ import {
   TextInput,
   ScrollView,
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Linking,
+  Dimensions,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -20,7 +22,8 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
-
+const screenHeight = Dimensions.get('window').height;
+const containerHeight = screenHeight * 0.6;
 export default function ConfirmTask() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -175,7 +178,37 @@ export default function ConfirmTask() {
     setReason('');
     setSelectedDueDate(new Date());
   };
-
+  const GoToLink = description => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = description?.match(urlRegex); // Tìm các URL trong description
+    if (urls && urls.length > 0) {
+      Linking.openURL(urls[0]).catch(() =>
+        Toast.show({
+          type: 'error',
+          text1: 'Không có Link',
+          text2: 'Không có Link',
+          text2Style: {
+            fontWeight: '700',
+            color: 'black',
+          },
+          visibilityTime: 3000,
+        }),
+      );
+      return;
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Không có Link',
+        text2: 'Không có Link',
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+      return;
+    }
+  };
   return (
     taskData && (
       <View style={styles.containerMain}>
@@ -189,146 +222,185 @@ export default function ConfirmTask() {
           </View>
         </LinearGradient>
 
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled">
-          <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Mô tả</Text>
-              <Text>{taskData.task.description}</Text>
-            </View>
-          </TouchableWithoutFeedback>
-          <View style={styles.rowContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Ngày tạo</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="Chọn ngày tạo"
-                value={moment(taskData.task.createDate)
-                  .tz('Asia/Ho_Chi_Minh')
-                  .format('HH:mm DD-MM-YYYY')}
-                editable={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Ngày hết hạn</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="Chọn ngày hết hạn"
-                value={moment(taskData.task.dueDate)
-                  .tz('Asia/Ho_Chi_Minh')
-                  .format('HH:mm DD-MM-YYYY')}
-                editable={false}
-              />
-            </View>
-          </View>
-          {showConfirmButton && (
+        <View style={styles.containerScoll}>
+          <ScrollView
+            contentContainerStyle={styles.scollMain}
+            style={styles.scollViewMain}
+            keyboardShouldPersistTaps="handled">
             <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Link sản phẩm(nếu có)</Text>
-                <TextInput
-                  style={[styles.input, styles.multilineInput]}
-                  placeholder="Nhập link sản phẩm(nếu có)"
-                  value={linkTask}
-                  multiline={true}
-                  onChangeText={setLinkTask}
-                />
+                <Text style={styles.label}>Mô tả</Text>
+                <Text>{taskData.task.description}</Text>
               </View>
             </TouchableWithoutFeedback>
-          )}
-
-          {showReasonInput && (
-            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={styles.rowContainer}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Lý do:</Text>
+                <Text style={[styles.labelMore]}>Ngày tạo</Text>
                 <TextInput
-                  style={[styles.input, styles.multilineInput]}
-                  placeholder="Nhập lý do"
-                  value={reason}
-                  multiline={true}
-                  onChangeText={setReason}
+                  style={[styles.inputMore]}
+                  placeholder="Chọn ngày tạo"
+                  value={moment(taskData.task.createDate)
+                    .tz('Asia/Ho_Chi_Minh')
+                    .format('HH:mm DD-MM-YYYY')}
+                  editable={false}
                 />
               </View>
-            </TouchableWithoutFeedback>
-          )}
-          {showReasonInput && (
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Ngày rời lịch</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="Chọn ngày rời lịch"
-                value={moment(selectedDueDate)
-                  .tz('Asia/Ho_Chi_Minh')
-                  .format('HH:mm DD-MM-YYYY')}
-                editable={false}
-                onPressIn={() => setShowDuePicker(true)}
-              />
+
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Ngày hết hạn</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="Chọn ngày hết hạn"
+                  value={moment(taskData.task.dueDate)
+                    .tz('Asia/Ho_Chi_Minh')
+                    .format('HH:mm DD-MM-YYYY')}
+                  editable={false}
+                />
+              </View>
             </View>
-          )}
-          <View style={styles.buttonContainer}>
-            {showRescheduleButton && (
-              <TouchableOpacity onPress={handleReschedule}>
-                <LinearGradient
-                  colors={['#FF6F00', '#FF9800']}
-                  style={styles.saveButton}>
-                  <Text style={styles.buttonTextMain}>Rời lịch</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
             {showConfirmButton && (
-              <TouchableOpacity onPress={handleConfirmHoanThanh}>
-                <LinearGradient
-                  colors={['#C6E6F1', '#C6E6F1']}
-                  style={styles.saveButton}>
-                  <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Link sản phẩm(nếu có)</Text>
+                  <TextInput
+                    style={[styles.input, styles.multilineInput]}
+                    placeholder="Nhập link sản phẩm(nếu có)"
+                    value={linkTask}
+                    multiline={true}
+                    onChangeText={setLinkTask}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
             )}
-            {!showConfirmButton && (
-              <TouchableOpacity onPress={handleConfirmRoiLich}>
-                <LinearGradient
-                  colors={['#C6E6F1', '#C6E6F1']}
-                  style={styles.saveButton}>
-                  <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+            {showReasonInput && (
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Lý do:</Text>
+                  <TextInput
+                    style={[styles.input, styles.multilineInput]}
+                    placeholder="Nhập lý do"
+                    value={reason}
+                    multiline={true}
+                    onChangeText={setReason}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
             )}
-            {!showConfirmButton && (
-              <TouchableOpacity onPress={handleCancel}>
-                <LinearGradient
-                  colors={['#FF6F00', '#FF9800']}
-                  style={styles.saveButton}>
-                  <Text style={styles.buttonTextMain}>Huỷ</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-          {showDuePicker && (
-            <Modal
-              transparent={true}
-              visible={showDuePicker}
-              animationType="slide">
-              <View style={styles.modalContainer}>
-                <DateTimePicker
-                  value={selectedDueDate}
-                  mode="datetime"
-                  display="spinner"
-                  onChange={onDueDateChange}
-                  locale="vi"
-                  textColor={'#000000'}
+            {showReasonInput && (
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Ngày rời lịch</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="Chọn ngày rời lịch"
+                  value={moment(selectedDueDate)
+                    .tz('Asia/Ho_Chi_Minh')
+                    .format('HH:mm DD-MM-YYYY')}
+                  editable={false}
+                  onPressIn={() => setShowDuePicker(true)}
                 />
-                <Button title="Xác nhận" onPress={confirmDueDate} />
               </View>
-            </Modal>
-          )}
-          <Toast />
-        </ScrollView>
+            )}
+            {showDuePicker && (
+              <Modal
+                transparent={true}
+                visible={showDuePicker}
+                animationType="slide">
+                <View style={styles.modalContainer}>
+                  <DateTimePicker
+                    value={selectedDueDate}
+                    mode="datetime"
+                    display="spinner"
+                    onChange={onDueDateChange}
+                    locale="vi"
+                    textColor={'#000000'}
+                  />
+                  <Button title="Xác nhận" onPress={confirmDueDate} />
+                </View>
+              </Modal>
+            )}
+           
+            <Toast />
+          </ScrollView>
+         
+
+            
+            <View style={styles.buttonContainer}>
+              {showRescheduleButton && (
+                <TouchableOpacity onPress={handleReschedule}>
+                  <LinearGradient
+                    colors={['#FF6F00', '#FF9800']}
+                    style={styles.saveButton}>
+                    <Text style={styles.buttonTextMain}>Rời lịch</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {showConfirmButton && (
+                <TouchableOpacity onPress={handleConfirmHoanThanh}>
+                  <LinearGradient
+                    colors={['#C6E6F1', '#C6E6F1']}
+                    style={styles.saveButton}>
+                    <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {!showConfirmButton && (
+                <TouchableOpacity onPress={handleConfirmRoiLich}>
+                  <LinearGradient
+                    colors={['#C6E6F1', '#C6E6F1']}
+                    style={styles.saveButton}>
+                    <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {!showConfirmButton && (
+                <TouchableOpacity onPress={handleCancel}>
+                  <LinearGradient
+                    colors={['#FF6F00', '#FF9800']}
+                    style={styles.saveButton}>
+                    <Text style={styles.buttonTextMain}>Huỷ</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+             
+            </View>
+            <View style={styles.buttonGoToLink}>
+            <TouchableOpacity
+              onPress={() => GoToLink(taskData.task.description)}
+              >
+              <Text style={styles.linkButton}>Mở xem link</Text>
+            </TouchableOpacity>
+            </View>
+           
+        </View>
       </View>
     )
   );
 }
 const styles = StyleSheet.create({
+  scollViewMain: {
+    paddingBottom: 20
+  },
+  scollMain: {
+    padding: 20,
+    paddingBottom: 50
+  },
+  containerScoll: {
+    paddingBottom: 20,
+    height: containerHeight,
+  },
+  buttonGoToLink: {
+    marginHorizontal: 20,
+    backgroundColor: '#ccc',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  linkButton: {
+    fontWeight: 700,
+    fontSize: 20,
+  },
   containerMain: {},
   header: {
     paddingVertical: 20,
@@ -377,6 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   buttonContainer: {
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,

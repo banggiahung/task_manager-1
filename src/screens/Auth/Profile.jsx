@@ -33,6 +33,8 @@ function Profile() {
   const [avatarBia, setAvatarBia] = useState(null);
   const [fullName, setFullName] = useState(null);
   const [tasksHoanThanh, setTasksHoanThanh] = useState(0);
+  const [tasksHoanThanhNotKPI, setTasksHoanThanhNotKPI] = useState(0);
+
   const [tasksRoiLich, setTasksRoiLich] = useState(0);
   const [kpi, setKpi] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -73,6 +75,9 @@ function Profile() {
       }
       if (newData.kpiUser > 0) {
         setKpi(newData.kpiUser);
+      }
+      if(newData.hoanThanhNotKPI > 0){
+        setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI)
       }
     } catch (error) {
       console.error('Error sending UserID:', error);
@@ -402,7 +407,7 @@ function Profile() {
                       <Text style={styles.text}>Task hoàn thành</Text>
 
                       <Text style={styles.text}>
-                        {tasksHoanThanh > 0 ? tasksHoanThanh.length : '0'}/{kpi}
+                        {tasksHoanThanhNotKPI >= 0 ? tasksHoanThanhNotKPI : '0'}/{kpi}
                       </Text>
                       <Text style={styles.text}>
                         {kpi > 0
