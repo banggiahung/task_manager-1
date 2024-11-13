@@ -31,6 +31,7 @@ function ListTaskByUser() {
 
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingOld, setRefreshingOld] = useState(false);
   const [refreshingTest, setRefreshingTest] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
@@ -56,12 +57,13 @@ function ListTaskByUser() {
       if (page == totalPage) {
         setPage(1);
       }
-      fetchTasks();
+      fetchTasksTest();
     }, [page]),
   );
   // useEffect(() => {
   //   fetchTasks();
   // }, [userId,page]);
+  
   const fetchTasks = async () => {
     console.log('totalPage', totalPage);
     console.log('page', page);
@@ -75,6 +77,55 @@ function ListTaskByUser() {
     //   '',
     // )}&createDate=${formattedDate}`;
     const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
+      userId.replace(/"/g, ''),
+    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    console.log(url);
+    setRefreshing(true);
+    const response = await axiosInstance.get(url);
+
+    setRefreshing(false);
+
+    console.log(response.data);
+    const newTasks = response.data.data;
+
+    // Lọc ra những task mới mà chưa có trong danh sách `tasks` dựa trên `taskID`
+    setTasks(prevTasks => {
+      // Lọc ra những task mới mà chưa có trong danh sách `prevTasks` dựa trên `taskID`
+      const uniqueNewTasks = newTasks.filter(
+        newTask =>
+          !prevTasks.some(
+            existingTask => existingTask.taskID === newTask.taskID,
+          ),
+      );
+
+      // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
+      if (uniqueNewTasks.length > 0) {
+        // Kết hợp các task cũ và task mới
+        const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
+
+        return allTasks;
+      }
+
+      // Nếu không có task mới, trả về prevTasks hiện tại
+      return prevTasks || [];
+    });
+
+    // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
+    setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+  };
+  const fetchTasksTest = async () => {
+    console.log('totalPage', totalPage);
+    console.log('page', page);
+    if (totalPage != 0 && page > totalPage) return;
+    // const formattedDate = moment(selectedDate)
+    //   .tz('Asia/Ho_Chi_Minh')
+    //   .format('YYYY-MM-DD');
+
+    // const url = `/get-list-task-user?UserID=${userId.replace(
+    //   /"/g,
+    //   '',
+    // )}&createDate=${formattedDate}`;
+    const url = `/get-list-group-user?UserID=${encodeURIComponent(
       userId.replace(/"/g, ''),
     )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
     console.log(url);
@@ -237,10 +288,9 @@ function ListTaskByUser() {
     }
   };
   const fetchTasksRefresh = async () => {
-    setPage(1);
+    setPage(1); 
 
-    console.log(page);
-    if (totalPage != 0 && page > totalPage) return;
+    // if (totalPage != 0 && page > totalPage) return;
     const formattedDate = moment(selectedDate)
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DD');
@@ -248,12 +298,11 @@ function ListTaskByUser() {
     const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
       userId.replace(/"/g, ''),
     )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
-    setRefreshing(true);
     console.log(url);
     axiosInstance
       .get(url)
       .then(response => {
-        setRefreshing(false);
+        setRefreshingOld(false);
         const newTasks = response.data.data;
         setTotalPage(response.data.pagination.totalPages);
 
@@ -273,7 +322,8 @@ function ListTaskByUser() {
         // }
       })
       .catch(error => {
-        setRefreshing(false);
+        setRefreshingOld(false);
+
 
         console.error('Error fetching tasks:', error);
       });
@@ -359,6 +409,18 @@ function ListTaskByUser() {
         ) : (
           <View style={styles.listItem}>
             <FlatList
+            refreshControl={
+              <RefreshControl
+              refreshing={refreshingOld}
+              onRefresh={()=>{
+                setRefreshingOld(true)
+                console.log("Làm mới dữ liệu")
+                fetchTasksRefresh();
+
+              }}
+              
+              />
+            }
               showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
               data={tasks}

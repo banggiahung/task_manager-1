@@ -19,12 +19,16 @@ import {useFocusEffect, useIsFocused} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
+import {CalendarList,Calendar} from 'react-native-calendars';
+
 const screenHeight = Dimensions.get('window').height;
 const containerHeight = screenHeight * 0.5;
 function TaskUserList() {
   const flatListRef = useRef(null);
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingOld, setRefreshingOld] = useState(false);
+
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(12);
@@ -46,16 +50,25 @@ function TaskUserList() {
   const isFocused = useIsFocused();
   const swipeableRefs = useRef([]);
   const [openSwipeableIndex, setOpenSwipeableIndex] = useState(null);
+  const [selectedDateCalendar, setSelectedDateCalendar] = useState(null);
+
+  const handleDayPress = day => {
+    setSelectedDateCalendar(day.dateString);
+    console.log('Selected Date', day.dateString); // You can replace this with your custom logic
+  };
+  const handleMonthChange = (month) => {
+    console.log('Tháng đã cuộn:', month);
+  };
+
   useEffect(() => {
     if (isFocused) {
       // Đóng tất cả Swipeable khi màn hình được focus
       swipeableRefs.current.forEach(ref => ref?.close());
     }
   }, [isFocused]);
-   useEffect(() => {
+  useEffect(() => {
     fetchTasks();
-
-   }, [user, page]);
+  }, [user, page]);
   useFocusEffect(
     React.useCallback(() => {
       // if (flatListRef.current) {
@@ -80,15 +93,15 @@ function TaskUserList() {
         },
       );
       const newData = response.data;
-      console.log(newData)
+      console.log(newData);
       if (newData.daHoanThanh > 0) {
         setTasksHoanThanh(newData.daHoanThanh);
       }
       if (newData.roiLich > 0) {
         setTasksRoiLich(newData.roiLich);
       }
-      if(newData.hoanThanhNotKPI > 0){
-        setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI)
+      if (newData.hoanThanhNotKPI > 0) {
+        setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI);
       }
       console.log('Response:', response.data);
     } catch (error) {
@@ -106,12 +119,14 @@ function TaskUserList() {
   const fetchTasks = () => {
     console.log(page);
     console.log(totalPage);
-    if(totalPage != 0 && page > totalPage) return;
+    if (totalPage != 0 && page > totalPage) return;
     const formattedDate = moment(selectedDate)
       .tz('Asia/Ho_Chi_Minh')
       .format('YYYY-MM-DD');
     console.log('formattedDate', formattedDate);
-    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(user.id)}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    const url = `/get-list-group-user?UserID=${encodeURIComponent(
+      user.id,
+    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
     setRefreshing(true);
 
     console.log(url);
@@ -120,47 +135,81 @@ function TaskUserList() {
       .then(response => {
         setRefreshing(false);
         const newTasks = response.data.data;
-        console.log(newTasks)
+        console.log(newTasks);
+        // setTasks(newTasks)
         setTasks(prevTasks => {
-          // Đảm bảo prevTasks không phải là undefined bằng cách cung cấp một mảng trống làm giá trị mặc định
-          const uniqueNewTasks = newTasks.filter(
-            newTask => !(prevTasks || []).some(
-              existingTask => existingTask.taskID === newTask.taskID
-            ),
-          );
-        
-          // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
-          if (uniqueNewTasks.length > 0) {
-            // Kết hợp các task cũ và task mới
-            const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
-        
-            // // Lấy ngày hiện tại để sắp xếp các task theo dueDate
-            // const now = moment().startOf('day');
-        
-            // // Sắp xếp `allTasks` với điều kiện:
-            // allTasks.sort((a, b) => {
-            //   // Kiểm tra status của task
-            //   const isACompleted = a.status === "Đã giao";
-            //   const isBCompleted = b.status === "Đã giao";
-        
-            //   // Đặt các task "Đã giao" lên đầu
-            //   if (isACompleted && !isBCompleted) return -1; // `a` lên đầu
-            //   if (!isACompleted && isBCompleted) return 1;  // `b` lên đầu
-        
-            //   // Nếu cả hai task đều chưa hoặc đều đã "Đã giao", sắp xếp theo `dueDate`
-            //   const aDueDate = moment(a.dueDate, 'YYYY-MM-DD');
-            //   const bDueDate = moment(b.dueDate, 'YYYY-MM-DD');
-        
-            //   // Sắp xếp các task chưa "Đã giao" theo `dueDate` gần nhất trước
-            //   return aDueDate.diff(bDueDate);
-            // });
-        
-            return allTasks;
-          }
-        
-          // Nếu không có task mới, trả về prevTasks hiện tại
-          return prevTasks || [];
+          const updatedTasks = prevTasks.map(item => {
+            // Iterate through each date in newTasks
+            const matchingDateTasks = newTasks.find(
+              newTaskGroup => newTaskGroup.date === item.date,
+            );
+            if (matchingDateTasks) {
+              // If date matches, filter out tasks that are already in the current item
+              const uniqueNewTasks = matchingDateTasks.tasks.filter(
+                newTask =>
+                  !item.tasks.some(
+                    existingTask => existingTask.taskID === newTask.taskID,
+                  ),
+              );
+              return {...item, tasks: [...item.tasks, ...uniqueNewTasks]};
+            }
+            console.log('item', item);
+
+            return item; // return unchanged item if date does not match
+          });
+
+          // If `prevTasks` does not contain the `date` from `newTasks`, add it
+          newTasks.forEach(newTaskGroup => {
+            if (!updatedTasks.some(item => item.date === newTaskGroup.date)) {
+              updatedTasks.push({
+                date: newTaskGroup.date,
+                tasks: newTaskGroup.tasks,
+              });
+            }
+          });
+          console.log('updatedTasks', updatedTasks);
+          return updatedTasks;
         });
+        // setTasks(prevTasks => {
+        //   // Đảm bảo prevTasks không phải là undefined bằng cách cung cấp một mảng trống làm giá trị mặc định
+        //   // const uniqueNewTasks = newTasks.filter(
+        //   //   newTask => !(prevTasks || []).some(
+        //   //     existingTask => existingTask.taskID === newTask.taskID
+        //   //   ),
+        //   // );
+
+        //   // // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
+        //   // if (uniqueNewTasks.length > 0) {
+        //   //   // Kết hợp các task cũ và task mới
+        //   //   const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
+
+        //   //   // // Lấy ngày hiện tại để sắp xếp các task theo dueDate
+        //   //   // const now = moment().startOf('day');
+
+        //   //   // // Sắp xếp `allTasks` với điều kiện:
+        //   //   // allTasks.sort((a, b) => {
+        //   //   //   // Kiểm tra status của task
+        //   //   //   const isACompleted = a.status === "Đã giao";
+        //   //   //   const isBCompleted = b.status === "Đã giao";
+
+        //   //   //   // Đặt các task "Đã giao" lên đầu
+        //   //   //   if (isACompleted && !isBCompleted) return -1; // `a` lên đầu
+        //   //   //   if (!isACompleted && isBCompleted) return 1;  // `b` lên đầu
+
+        //   //   //   // Nếu cả hai task đều chưa hoặc đều đã "Đã giao", sắp xếp theo `dueDate`
+        //   //   //   const aDueDate = moment(a.dueDate, 'YYYY-MM-DD');
+        //   //   //   const bDueDate = moment(b.dueDate, 'YYYY-MM-DD');
+
+        //   //   //   // Sắp xếp các task chưa "Đã giao" theo `dueDate` gần nhất trước
+        //   //   //   return aDueDate.diff(bDueDate);
+        //   //   // });
+
+        //   //   return allTasks;
+        //   // }
+
+        //   // Nếu không có task mới, trả về prevTasks hiện tại
+        //   return prevTasks || [];
+        // });
         setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
 
         // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
@@ -175,48 +224,57 @@ function TaskUserList() {
         console.error('Error fetching tasks:', error);
       });
   };
+
   const fetchTasksRefresh = () => {
-    setPage(1); 
-    
-  
-    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(user.id)}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    setPage(1);
+
+    const url = `/get-list-group-user?UserID=${encodeURIComponent(
+      user.id,
+    )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
     setRefreshing(true);
 
     console.log(url);
     axiosInstance
       .get(url)
       .then(response => {
-        setRefreshing(false);
+        setRefreshingOld(false);
+
         const newTasks = response.data.data;
-        console.log(newTasks)
-        setTasks(() => {
-          // Xóa hết các task cũ và thêm task mới
-          const allTasks = [...newTasks];
-  
-          // Lấy ngày hiện tại
-          // const now = moment().startOf('day');
-        
-          //   // Sắp xếp `allTasks` với điều kiện:
-          //   allTasks.sort((a, b) => {
-          //     // Kiểm tra status của task
-          //     const isACompleted = a.status === "Đã giao";
-          //     const isBCompleted = b.status === "Đã giao";
-        
-          //     // Đặt các task "Đã giao" lên đầu
-          //     if (isACompleted && !isBCompleted) return -1; // `a` lên đầu
-          //     if (!isACompleted && isBCompleted) return 1;  // `b` lên đầu
-        
-          //     // Nếu cả hai task đều chưa hoặc đều đã "Đã giao", sắp xếp theo `dueDate`
-          //     const aDueDate = moment(a.dueDate, 'YYYY-MM-DD');
-          //     const bDueDate = moment(b.dueDate, 'YYYY-MM-DD');
-        
-          //     // Sắp xếp các task chưa "Đã giao" theo `dueDate` gần nhất trước
-          //     return aDueDate.diff(bDueDate);
-          //   });
-        
-            return allTasks;
+        console.log(newTasks);
+        setTasks(prevTasks => {
+          const updatedTasks = prevTasks.map(item => {
+            // Iterate through each date in newTasks
+            const matchingDateTasks = newTasks.find(
+              newTaskGroup => newTaskGroup.date === item.date,
+            );
+            if (matchingDateTasks) {
+              // If date matches, filter out tasks that are already in the current item
+              const uniqueNewTasks = matchingDateTasks.tasks.filter(
+                newTask =>
+                  !item.tasks.some(
+                    existingTask => existingTask.taskID === newTask.taskID,
+                  ),
+              );
+              return {...item, tasks: [...item.tasks, ...uniqueNewTasks]};
+            }
+            console.log('item', item);
+
+            return item; // return unchanged item if date does not match
+          });
+
+          // If `prevTasks` does not contain the `date` from `newTasks`, add it
+          newTasks.forEach(newTaskGroup => {
+            if (!updatedTasks.some(item => item.date === newTaskGroup.date)) {
+              updatedTasks.push({
+                date: newTaskGroup.date,
+                tasks: newTaskGroup.tasks,
+              });
+            }
+          });
+          console.log('updatedTasks', updatedTasks);
+          return updatedTasks;
         });
-        setTotalPage(response.data.pagination.totalPages); 
+        setTotalPage(response.data.pagination.totalPages);
         // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
         // if (uniqueNewTasks.length > 0) {
         //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
@@ -224,7 +282,7 @@ function TaskUserList() {
         // }
       })
       .catch(error => {
-        setRefreshing(false);
+        setRefreshingOld(false);
 
         console.error('Error fetching tasks:', error);
       });
@@ -303,10 +361,27 @@ function TaskUserList() {
     setRefreshing(true);
     fetchTasksRefresh(); // Tải dữ liệu từ trang đầu tiên
   };
+  const handleClearSelection = () => {
+    setSelectedDateCalendar(null); // Hủy chọn ngày
+  };
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <View style={styles.container}>
+      <Calendar
+            locale={'vi'}
+            markedDates={{
+              [selectedDateCalendar]: { selected: true, selectedColor: '#ADD8E6' },  // Màu xanh nhạt
+            }}
+            onDayPress={handleDayPress}
+            monthFormat={'yyyy MM'}
+            markingType={'simple'}
+            horizontal={true} 
+            pagingEnabled={true} 
+            onMonthChange={handleMonthChange}
+          />
+           <Button title="Hủy chọn ngày" onPress={handleClearSelection} />
         <View style={styles.containerRow}>
+          
           <TouchableOpacity style={styles.w100}>
             <LinearGradient
               colors={['#ff7e5f', '#feb47b']}
@@ -321,7 +396,17 @@ function TaskUserList() {
             <LinearGradient
               colors={['#86e3ce', '#91eae4']}
               style={styles.square}>
-              <Text style={styles.text}>KPI: {user?.kpiUser}</Text>
+              <Text style={styles.text}>
+                KPI:
+                <Text style={styles.text}>
+                  {tasksHoanThanh >= 0 ? tasksHoanThanh : '0'}/{user?.kpiUser}
+                </Text>
+                <Text style={styles.text}>
+                  {user?.kpiUser > 0
+                    ? `(${Math.round((tasksHoanThanh / user.kpiUser) * 100)}%)`
+                    : '(Chưa có KPI)'}
+                </Text>
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -334,13 +419,7 @@ function TaskUserList() {
               <Text style={styles.text}>Task hoàn thành</Text>
 
               <Text style={styles.text}>
-                {tasksHoanThanhNotKPI >= 0 ? tasksHoanThanhNotKPI : '0'}/
-                {user?.kpiUser}
-              </Text>
-              <Text style={styles.text}>
-                {user?.kpiUser > 0
-                  ? `(${Math.round((tasksHoanThanh / user.kpiUser) * 100)}%)`
-                  : '(Chưa có KPI)'}
+                {tasksHoanThanhNotKPI >= 0 ? tasksHoanThanhNotKPI : '0'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -397,80 +476,111 @@ function TaskUserList() {
         ) : (
           <View style={styles.listItem}>
             <FlatList
-            ref={flatListRef}
+              ref={flatListRef}
               showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
-              data={tasks}
-              keyExtractor={item => item.taskID}
-              renderItem={({item, index}) => {
-                const renderRightActions = () => (
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(item.taskID)}>
-                    <View>
-                      <Text style={styles.deleteButtonText}>Xóa</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-                const renderLeftActions = () => (
-                  <TouchableOpacity
-                    style={styles.detailButton}
-                    onPress={() => handleDetails(item.taskID)}>
-                    <View>
-                      <Text style={styles.detailButtonText}>Tiến độ</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-
+              data={tasks} // Main data array with date groups
+              keyExtractor={item => item.date}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshingOld}
+                  onRefresh={() => {
+                    setRefreshingOld(true);
+                    console.log('Refreshing data');
+                    fetchTasksRefresh();
+                  }}
+                />
+              }
+              renderItem={({item}) => {
                 return (
-                  <Swipeable
-                    ref={ref => (swipeableRefs.current[index] = ref)}
-                    renderLeftActions={renderLeftActions}
-                    renderRightActions={renderRightActions}
-                    onSwipeableClose={() => setOpenSwipeableIndex(null)}
-                    onSwipeableOpen={() => handleSwipeOpen(index)} // Gọi hàm khi item được mở
-                  >
-                    <TouchableOpacity
-                      style={styles.taskItem}
-                      onPress={() =>
-                        navigation.navigate('TaskDetail', {
-                          task: item,
-                          user: user,
-                        })
-                      }>
-                      <View style={styles.taskContent}>
-                        <Text
-                          numberOfLines={2}
-                          ellipsizeMode="tail"
-                          style={styles.taskTitle}>
-                          {item.title}
-                        </Text>
-                        <Text
-                          numberOfLines={2}
-                          ellipsizeMode="tail"
-                          style={styles.taskDescription}>
-                          {item.description}
-                        </Text>
-                      </View>
+                  <View>
+                    <Text style={styles.dateHeader}>
+                      {' '}
+                      {moment(item.date).format('DD-MM-YYYY')}
+                    </Text>
 
-                      <View style={styles.rightContent}>
-                        <Text style={styles.createDateText}>
-                          {moment(item.dueDate)
-                            .tz('Asia/Ho_Chi_Minh')
-                            .format('HH:mm DD-MM-YYYY')}
-                        </Text>
-                        <View style={styles.statusContainer}>
-                          <Text style={styles.statusText}>{item.status}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </Swipeable>
+                    <FlatList
+                      data={item.tasks} // Array of task objects for each date
+                      keyExtractor={task => task.taskID.toString()}
+                      renderItem={({item: task, index}) => {
+                        const renderRightActions = () => (
+                          <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => handleDelete(task.taskID)}>
+                            <View>
+                              <Text style={styles.deleteButtonText}>
+                                Delete
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+
+                        const renderLeftActions = () => (
+                          <TouchableOpacity
+                            style={styles.detailButton}
+                            onPress={() => handleDetails(task.taskID)}>
+                            <View>
+                              <Text style={styles.detailButtonText}>
+                                Details
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+
+                        return (
+                          <Swipeable
+                            key={task.taskID}
+                            ref={ref => (swipeableRefs.current[index] = ref)}
+                            renderLeftActions={renderLeftActions}
+                            renderRightActions={renderRightActions}
+                            onSwipeableClose={() => setOpenSwipeableIndex(null)}
+                            onSwipeableOpen={() => handleSwipeOpen(index)}>
+                            <TouchableOpacity
+                              style={styles.taskItem}
+                              onPress={() =>
+                                navigation.navigate('TaskDetail', {
+                                  task: task,
+                                  user: user,
+                                })
+                              }>
+                              <View style={styles.taskContent}>
+                                <Text
+                                  numberOfLines={2}
+                                  ellipsizeMode="tail"
+                                  style={styles.taskTitle}>
+                                  {task.title}
+                                </Text>
+                                <Text
+                                  numberOfLines={2}
+                                  ellipsizeMode="tail"
+                                  style={styles.taskDescription}>
+                                  {task.description}
+                                </Text>
+                              </View>
+
+                              <View style={styles.rightContent}>
+                                <Text style={styles.createDateText}>
+                                  {moment(task.dueDate)
+                                    .tz('Asia/Ho_Chi_Minh')
+                                    .format('HH:mm DD-MM-YYYY')}
+                                </Text>
+                                <View style={styles.statusContainer}>
+                                  <Text style={styles.statusText}>
+                                    {task.status}
+                                  </Text>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          </Swipeable>
+                        );
+                      }}
+                    />
+                  </View>
                 );
               }}
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.1}
               refreshing={refreshing}
-              onRefresh={handleRefresh}
             />
           </View>
         )}
@@ -481,6 +591,23 @@ function TaskUserList() {
 }
 
 const styles = StyleSheet.create({
+  dateHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  rightContent: {
+    alignItems: 'center',
+  },
   listItem: {
     height: containerHeight,
     paddingBottom: 20,
