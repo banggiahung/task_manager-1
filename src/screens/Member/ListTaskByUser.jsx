@@ -11,6 +11,7 @@ import {
   Keyboard,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -23,11 +24,17 @@ import DayItem from '../../components/DayItem';
 import Loading from '../../components/Loading';
 import Theme from '../../configs/color';
 import {storeData, getData} from '../../configs/asyncStorage.js';
+import {CalendarList, Calendar} from 'react-native-calendars';
+import LinearGradient from 'react-native-linear-gradient';
+
 const screenHeight = Dimensions.get('window').height;
-const containerHeight = screenHeight * 0.6;
+const containerHeight = screenHeight * 0.7;
+const paddingBottom = screenHeight * 0.3;
+
 import * as FeatherIcons from 'react-native-feather';
 function ListTaskByUser() {
   const scrollViewRef = useRef(null);
+  const flatListRef = useRef(null);
 
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
@@ -37,6 +44,9 @@ function ListTaskByUser() {
   const [totalPage, setTotalPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(4);
   const [paramPage, setParamPage] = useState({});
+  const [showCalender, setShowCalender] = useState(false);
+  const [selectedDateCalendar, setSelectedDateCalendar] = useState(null);
+  const [todayDate, setTodayDate] = useState(false);
   const route = useRoute();
   const userId = route.params?.userId;
   // const userId = '0185bf98-a75e-44ed-a9b6-7ff495fa610e';
@@ -52,115 +62,126 @@ function ListTaskByUser() {
     moment().tz('Asia/Ho_Chi_Minh').toDate(),
   );
   const [selectedDateHeader, setSelectedDateHeader] = useState(null);
+  const handleDayPress = async day => {
+    setSelectedDateCalendar(day.dateString);
+    let url = '';
+    url = `/get-list-group-user?UserID=${encodeURIComponent(
+      userId.replace(/"/g, ''),
+    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}&chooseDate=${encodeURIComponent(
+      day.dateString,
+    )}`;
+    const response = await axiosInstance.get(url);
+    const newTasks = response.data.data;
+    if (newTasks.tasks.length > 0) {
+      setTasks([newTasks]);
+    } else {
+      setPage(1);
+      setTodayDate(false);
+
+      setTasks([]);
+    }
+  };
+  const handleMonthChange = async month => {
+    const currentMonth = moment().format('YYYY-MM'); // Lấy tháng hiện tại theo định dạng 'YYYY-MM'
+    const selectedMonth = month.dateString.slice(0, 7); // Lấy tháng được chọn từ dateString
+
+    let url = '';
+
+    // Kiểm tra nếu tháng được chọn là tháng hiện tại
+    if (selectedMonth === currentMonth) {
+      setTodayDate(true);
+
+      await fetchTasksRefresh();
+      return;
+    } else {
+      setPage(1);
+
+      const firstDayOfMonth = moment(month.dateString)
+        .startOf('month')
+        .format('YYYY-MM-DD');
+
+      // Gọi API cho tháng khác
+      url = `/get-list-group-user?UserID=${encodeURIComponent(
+        userId.replace(/"/g, ''),
+      )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}&chooseMonth=${encodeURIComponent(
+        firstDayOfMonth,
+      )}`;
+    }
+    const response = await axiosInstance.get(url);
+    const newTasks = response.data.data;
+    if (response.data.code != 400) {
+      setTasks(newTasks);
+    } else {
+      setTasks([]);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      if (page == totalPage) {
-        setPage(1);
-      }
-      fetchTasksTest();
-    }, [page]),
+      fetchTasks(1);
+    }, [userId]),
   );
   // useEffect(() => {
   //   fetchTasks();
   // }, [userId,page]);
-  
-  const fetchTasks = async () => {
-    console.log('totalPage', totalPage);
-    console.log('page', page);
-    if (totalPage != 0 && page > totalPage) return;
-    // const formattedDate = moment(selectedDate)
-    //   .tz('Asia/Ho_Chi_Minh')
-    //   .format('YYYY-MM-DD');
 
-    // const url = `/get-list-task-user?UserID=${userId.replace(
-    //   /"/g,
-    //   '',
-    // )}&createDate=${formattedDate}`;
-    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
-      userId.replace(/"/g, ''),
-    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
-    console.log(url);
+  const fetchTasks = async pageNew => {
+    console.log('selectedDateCalendar', selectedDateCalendar);
+    if (selectedDateCalendar != null) {
+      setPage(1);
+      return;
+    }
+    if (totalPage != 0 && page > totalPage) return;
+    let today = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
+    let url = '';
     setRefreshing(true);
+
+    setLoading(true);
+
+    if (todayDate) {
+      url = `/get-list-group-user?UserID=${encodeURIComponent(
+        userId.replace(/"/g, ''),
+      )}&Page=${pageNew}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
+    } else {
+      url = `/get-list-group-user?UserID=${encodeURIComponent(
+        userId.replace(/"/g, ''),
+      )}&Page=${pageNew}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}&chooseDate=${encodeURIComponent(
+        today,
+      )}`;
+      setTodayDate(true);
+    }
+
     const response = await axiosInstance.get(url);
 
-    setRefreshing(false);
 
     console.log(response.data);
     const newTasks = response.data.data;
+   
 
-    // Lọc ra những task mới mà chưa có trong danh sách `tasks` dựa trên `taskID`
     setTasks(prevTasks => {
-      // Lọc ra những task mới mà chưa có trong danh sách `prevTasks` dựa trên `taskID`
-      const uniqueNewTasks = newTasks.filter(
-        newTask =>
-          !prevTasks.some(
-            existingTask => existingTask.taskID === newTask.taskID,
-          ),
-      );
+      let updatedTasks = Array.isArray(prevTasks) ? [...prevTasks] : [];
+      if (updatedTasks.length > 0) {
+        const isDateExisting = updatedTasks.some(
+          item => item.date === newTasks.date,
+        );
+        if (!isDateExisting) {
+          updatedTasks.push(newTasks);
+        }
+        updatedTasks.sort((a, b) => {
+          if (a.date === today) return -1;
+          if (b.date === today) return 1;
+          return b.date.localeCompare(a.date);
+        });
 
-      // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
-      if (uniqueNewTasks.length > 0) {
-        // Kết hợp các task cũ và task mới
-        const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
-
-        return allTasks;
+        return updatedTasks;
       }
-
-      // Nếu không có task mới, trả về prevTasks hiện tại
-      return prevTasks || [];
+      updatedTasks.push(newTasks);
+      return updatedTasks;
     });
 
-    // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
-    setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
-  };
-  const fetchTasksTest = async () => {
-    console.log('totalPage', totalPage);
-    console.log('page', page);
-    if (totalPage != 0 && page > totalPage) return;
-    // const formattedDate = moment(selectedDate)
-    //   .tz('Asia/Ho_Chi_Minh')
-    //   .format('YYYY-MM-DD');
-
-    // const url = `/get-list-task-user?UserID=${userId.replace(
-    //   /"/g,
-    //   '',
-    // )}&createDate=${formattedDate}`;
-    const url = `/get-list-group-user?UserID=${encodeURIComponent(
-      userId.replace(/"/g, ''),
-    )}&Page=${page}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
-    console.log(url);
-    setRefreshing(true);
-    const response = await axiosInstance.get(url);
-
+    setTotalPage(response.data.pagination.totalPages);
     setRefreshing(false);
-
-    console.log(response.data);
-    const newTasks = response.data.data;
-
-    // Lọc ra những task mới mà chưa có trong danh sách `tasks` dựa trên `taskID`
-    setTasks(prevTasks => {
-      // Lọc ra những task mới mà chưa có trong danh sách `prevTasks` dựa trên `taskID`
-      const uniqueNewTasks = newTasks.filter(
-        newTask =>
-          !prevTasks.some(
-            existingTask => existingTask.taskID === newTask.taskID,
-          ),
-      );
-
-      // Nếu có task mới sau khi lọc, thêm vào mảng `prevTasks`
-      if (uniqueNewTasks.length > 0) {
-        // Kết hợp các task cũ và task mới
-        const allTasks = [...(prevTasks || []), ...uniqueNewTasks];
-
-        return allTasks;
-      }
-
-      // Nếu không có task mới, trả về prevTasks hiện tại
-      return prevTasks || [];
-    });
-
-    // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
-    setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+    setLoading(false);
   };
 
   const onDateChange = (event, selected) => {
@@ -277,53 +298,37 @@ function ListTaskByUser() {
   const formattedSelectedDate = moment(selectedDate)
     .tz('Asia/Ho_Chi_Minh')
     .format('DD-MM-YYYY');
-  const sortedTasks = tasks
-    ? [...tasks].sort((a, b) => {
-        return moment(a.dueDate).diff(moment(b.dueDate));
-      })
-    : [];
-  const handleLoadMore = async () => {
-    if (page < totalPage) {
-      setPage(prevPage => prevPage + 1);
-    }
-  };
-  const fetchTasksRefresh = async () => {
-    setPage(1); 
 
-    // if (totalPage != 0 && page > totalPage) return;
-    const formattedDate = moment(selectedDate)
-      .tz('Asia/Ho_Chi_Minh')
-      .format('YYYY-MM-DD');
-    console.log('formattedDate', formattedDate);
-    const url = `/get-list-task-user-main?UserID=${encodeURIComponent(
+    const handleLoadMore = async () => {
+      console.log('đã gọi load more');
+      console.log(page);
+      console.log(totalPage);
+      if (page <= totalPage) {
+        setPage(prevPage => prevPage + 1);
+        await fetchTasks(page);
+      }
+    };
+  const fetchTasksRefresh = async () => {
+    setSelectedDateCalendar(null);
+
+    setPage(1);
+    let today = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
+
+    const url = `/get-list-group-user?UserID=${encodeURIComponent(
       userId.replace(/"/g, ''),
     )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
-    console.log(url);
+
     axiosInstance
       .get(url)
       .then(response => {
-        setRefreshingOld(false);
         const newTasks = response.data.data;
+        setTodayDate(null);
+        setRefreshingOld(false);
+        setTasks([newTasks]);
         setTotalPage(response.data.pagination.totalPages);
-
-        console.log(newTasks);
-        setTasks(() => {
-          // Xóa hết các task cũ và thêm task mới
-          const allTasks = [...newTasks];
-
-          // Lấy ngày hiện tại
-
-          return allTasks;
-        });
-        // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
-        // if (uniqueNewTasks.length > 0) {
-        //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
-        //   setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
-        // }
       })
       .catch(error => {
         setRefreshingOld(false);
-
 
         console.error('Error fetching tasks:', error);
       });
@@ -332,15 +337,18 @@ function ListTaskByUser() {
     setRefreshing(true);
     fetchTasksRefresh();
   };
-  if (loading) {
-    return <Loading />;
-  }
+  const handleClearSelection = () => {
+    setSelectedDateCalendar(null);
+    setPage(1);
+    fetchTasksRefresh();
+  };
+  
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       {/* const isActive = date === today || date === selectedDateHeader; */}
 
       <View style={styles.monthContainer}>
-        <ScrollView
+        {/* <ScrollView
           ref={scrollViewRef}
           horizontal={true}
           showsHorizontalScrollIndicator={false}>
@@ -363,22 +371,48 @@ function ListTaskByUser() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </ScrollView> */}
+        {showCalender ? (
+          <View >
+            <Calendar
+              locale={'vi'}
+              markedDates={{
+                [selectedDateCalendar]: {
+                  selected: true,
+                  selectedColor: '#ADD8E6',
+                }, // Màu xanh nhạt
+              }}
+              onDayPress={handleDayPress}
+              monthFormat={'yyyy MM'}
+              markingType={'simple'}
+              horizontal={true}
+              pagingEnabled={true}
+              onMonthChange={handleMonthChange}
+            />
+            <View style={styles.containerButton}>
+              <TouchableOpacity onPress={handleClearSelection}>
+                <Text style={styles.buttonTextLich}>Hủy chọn ngày</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowCalender(false)}>
+                <Text style={styles.buttonTextLich}>Đóng lịch</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.calenderContainer} onPress={() => setShowCalender(true)}>
+            <LinearGradient
+              colors={['#007bff', '#007bff']}
+              style={{width: '100%', padding: 10, borderRadius: 8}}>
+              <Text style={{textAlign: 'center', color: '#fff'}}>Mở lịch</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
       <View style={styles.container}>
-        <View style={styles.buttonContainer}>
-          {/* <Button title="Chọn ngày" onPress={() => setShowDatePicker(true)} /> */}
-          {/* <TouchableOpacity
-            style={styles.button}
-            onPress={() =>
-              setSelectedDate(
-                moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD'),
-              )
-            }>
-            <Text style={styles.buttonText}>Hôm nay</Text>
-          </TouchableOpacity> */}
+        {/* <View style={styles.buttonContainer}>
+         
           <Text style={styles.choose}>Ngày {formattedSelectedDate}</Text>
-        </View>
+        </View> */}
 
         <Modal visible={showDatePicker} transparent animationType="slide">
           <View style={styles.modalContainer}>
@@ -402,110 +436,110 @@ function ListTaskByUser() {
 
         {tasks == null || tasks.length === 0 ? (
           <View>
-            <Text style={styles.noTasksText}>
-              Ngày {formattedSelectedDate} không có task nào
-            </Text>
+            <Text style={styles.noTasksText}>Không có task nào</Text>
           </View>
         ) : (
           <View style={styles.listItem}>
             <FlatList
-            refreshControl={
-              <RefreshControl
-              refreshing={refreshingOld}
-              onRefresh={()=>{
-                setRefreshingOld(true)
-                console.log("Làm mới dữ liệu")
-                fetchTasksRefresh();
-
-              }}
-              
-              />
-            }
+              contentContainerStyle={{paddingBottom: paddingBottom}}
+              ref={flatListRef}
               showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
               data={tasks}
-              keyExtractor={item => item.taskID.toString()}
+              keyExtractor={item => item.date}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshingOld}
+                  onRefresh={() => {
+                    setRefreshingOld(true);
+                    fetchTasksRefresh();
+                  }}
+                />
+              }
+              ListFooterComponent={
+                loading ? (
+                  <ActivityIndicator size="large" color="#0000ff" />
+                ) : null
+              }
               renderItem={({item}) => {
-                const renderRightActions = () => (
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleHoanThanh(item.taskID)}>
-                    <View>
-                      <Text style={styles.deleteButtonText}>Hoàn thành</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-                const renderLeftActions = () => (
-                  <TouchableOpacity
-                    style={styles.detailButton}
-                    onPress={() => handleDetails(item.taskID)}>
-                    <View>
-                      <Text style={styles.detailButtonText}>Chi tiết</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-
                 return (
-                  <Swipeable
-                  // renderLeftActions={renderLeftActions}
-                  // renderRightActions={renderRightActions}
-                  >
-                    <TouchableOpacity
-                      style={styles.taskItem}
-                      onPress={() =>
-                        navigation.navigate('ConfirmTask', {
-                          taskID: item.taskID,
-                          userId: userId.replace(/"/g, ''),
-                        })
-                      }>
-                      <View style={styles.taskContent}>
-                        <View style={styles.leftContent}>
-                          <Text style={styles.createDateText}>
-                            {moment(item.createDate)
-                              .tz('Asia/Ho_Chi_Minh')
-                              .format('HH:mm DD-MM')}
-                          </Text>
-                          <View style={styles.arrowContainer}>
-                            <Text style={styles.arrowText}>↓</Text>
-                          </View>
-                          <Text style={styles.createDateText}>
-                            {moment(item.dueDate)
-                              .tz('Asia/Ho_Chi_Minh')
-                              .format('HH:mm DD-MM')}
-                          </Text>
-                        </View>
-                        <View style={styles.rightContent}>
-                          <View style={styles.containerItemMain}>
-                            <Text
-                              numberOfLines={2}
-                              ellipsizeMode="tail"
-                              style={styles.taskTitle}>
-                              {item.title}
-                            </Text>
-                            <Text
-                              numberOfLines={2}
-                              ellipsizeMode="tail"
-                              style={styles.taskDescription}>
-                              {item.description}
-                            </Text>
-                          </View>
+                  <View>
+                    <Text style={styles.dateHeader}>
+                      {moment(item.date).format('DD-MM-YYYY')}
+                    </Text>
 
-                          <View style={styles.statusContainer}>
-                            <Text style={styles.statusText}>{item.status}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </Swipeable>
+                    <FlatList
+                      data={item.tasks}
+                      keyExtractor={task => task.taskID.toString()}
+                      renderItem={({item: task, index}) => {
+                        return (
+                          <Swipeable
+                          // renderLeftActions={renderLeftActions}
+                          // renderRightActions={renderRightActions}
+                          >
+                            <TouchableOpacity
+                              style={styles.taskItem}
+                              onPress={() =>
+                                navigation.navigate('ConfirmTask', {
+                                  taskID: task.taskID,
+                                  userId: userId.replace(/"/g, ''),
+                                })
+                              }>
+                              <View style={styles.taskContent}>
+                                <View style={styles.leftContent}>
+                                  <Text style={styles.createDateText}>
+                                    {moment(task.createDate)
+                                      .tz('Asia/Ho_Chi_Minh')
+                                      .format('HH:mm DD-MM')}
+                                  </Text>
+                                  <View style={styles.arrowContainer}>
+                                    <Text style={styles.arrowText}>↓</Text>
+                                  </View>
+                                  <Text style={styles.createDateText}>
+                                    {moment(task.dueDate)
+                                      .tz('Asia/Ho_Chi_Minh')
+                                      .format('HH:mm DD-MM')}
+                                  </Text>
+                                </View>
+                                <View style={styles.rightContent}>
+                                  <View style={styles.containerItemMain}>
+                                    <Text
+                                      numberOfLines={2}
+                                      ellipsizeMode="tail"
+                                      style={styles.taskTitle}>
+                                      {task.title}
+                                    </Text>
+                                    <Text
+                                      numberOfLines={2}
+                                      ellipsizeMode="tail"
+                                      style={styles.taskDescription}>
+                                      {task.description}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.statusContainer}>
+                                    <Text style={styles.statusText}>
+                                      {task.status}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          </Swipeable>
+                        );
+                      }}
+                     
+                    />
+                  </View>
                 );
               }}
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.1}
+              onEndReached={() => handleLoadMore()}
+
+              onEndReachedThreshold={0.3}
               refreshing={refreshing}
-              // onRefresh={handleRefresh}
             />
           </View>
         )}
+
         <Toast />
       </View>
     </GestureHandlerRootView>
@@ -513,6 +547,36 @@ function ListTaskByUser() {
 }
 
 const styles = StyleSheet.create({
+  calenderContainer: {
+    padding: 16,
+    paddingBottom: 0
+  },
+  containerButton: {
+    marginTop: 12,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  buttonTextLich: {
+    padding: 10,
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+  },
+  dateHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
   listItem: {
     height: containerHeight,
     paddingBottom: 20,

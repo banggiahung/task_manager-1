@@ -240,7 +240,6 @@ function TaskUserList() {
   };
 
   const fetchTasksRefresh = () => {
-    console.log('goij clear');
     setSelectedDateCalendar(null);
 
     setPage(1);
@@ -352,14 +351,13 @@ function TaskUserList() {
   };
   const handleRefresh = async () => {
     setRefreshing(true);
-    fetchTasksRefresh(); // Tải dữ liệu từ trang đầu tiên
+    fetchTasksRefresh();
   };
   const handleClearSelection = () => {
-    setSelectedDateCalendar(null); // Hủy chọn ngày
+    setSelectedDateCalendar(null);
     setPage(1);
     fetchTasksRefresh();
   };
-  
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
@@ -382,16 +380,16 @@ function TaskUserList() {
               onMonthChange={handleMonthChange}
             />
             <View style={styles.containerButton}>
-              <TouchableOpacity  onPress={()=>handleClearSelection}>
+              <TouchableOpacity onPress={handleClearSelection}>
                 <Text style={styles.buttonTextLich}>Hủy chọn ngày</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={()=>setShowCalender(false)}>
+              <TouchableOpacity onPress={() => setShowCalender(false)}>
                 <Text style={styles.buttonTextLich}>Đóng lịch</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={()=> setShowCalender(true)}>
+          <TouchableOpacity onPress={() => setShowCalender(true)}>
             <LinearGradient
               colors={['#007bff', '#007bff']}
               style={{width: '100%', padding: 10, borderRadius: 8}}>
@@ -502,7 +500,7 @@ function TaskUserList() {
               ref={flatListRef}
               showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
-              data={tasks} // Main data array with date groups
+              data={tasks}
               keyExtractor={item => item.date}
               refreshControl={
                 <RefreshControl
@@ -522,13 +520,15 @@ function TaskUserList() {
               renderItem={({item}) => {
                 return (
                   <View>
-                    <Text style={styles.dateHeader}>
-                      {' '}
-                      {moment(item.date).format('DD-MM-YYYY')}
-                    </Text>
+                    {item.tasks && item.tasks.length > 0 && (
+                      <Text style={styles.dateHeader}>
+                        {' '}
+                        {moment(item.date).format('DD-MM-YYYY')}
+                      </Text>
+                    )}
 
                     <FlatList
-                      data={item.tasks} // Array of task objects for each date
+                      data={item.tasks}
                       keyExtractor={task => task.taskID.toString()}
                       renderItem={({item: task, index}) => {
                         const renderRightActions = () => (
@@ -536,9 +536,7 @@ function TaskUserList() {
                             style={styles.deleteButton}
                             onPress={() => handleDelete(task.taskID)}>
                             <View>
-                              <Text style={styles.deleteButtonText}>
-                                Delete
-                              </Text>
+                              <Text style={styles.deleteButtonText}>Xóa</Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -549,7 +547,7 @@ function TaskUserList() {
                             onPress={() => handleDetails(task.taskID)}>
                             <View>
                               <Text style={styles.detailButtonText}>
-                                Details
+                                Tiến độ
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -619,16 +617,16 @@ function TaskUserList() {
 }
 
 const styles = StyleSheet.create({
-  containerButton:{
+  containerButton: {
     marginTop: 12,
     marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between"
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  buttonTextLich:{
+  buttonTextLich: {
     padding: 10,
     backgroundColor: '#4CAF50',
-    color: "#fff"
+    color: '#fff',
   },
   dateHeader: {
     fontSize: 18,
