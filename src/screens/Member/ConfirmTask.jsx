@@ -22,13 +22,17 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
+import Loading from '../../components/Loading';
+
 const screenHeight = Dimensions.get('window').height;
 const containerHeight = screenHeight * 0.6;
+
 export default function ConfirmTask() {
   const navigation = useNavigation();
   const route = useRoute();
   const taskID = route.params?.taskID;
   const userID = route.params?.userId;
+  const [loading, setLoading] = useState(false);
 
   const [showRescheduleButton, setShowRescheduleButton] = useState(true);
   const [showConfirmButton, setShowConfirmButton] = useState(true);
@@ -78,6 +82,8 @@ export default function ConfirmTask() {
     setShowConfirmButton(false);
   };
   const handleConfirmRoiLich = async () => {
+    setLoading(true);
+
     const stringConfirm = 'Rời lịch';
     if (reason == null || reason == '') {
       Toast.show({
@@ -107,6 +113,8 @@ export default function ConfirmTask() {
     axiosInstance
       .post(url)
       .then(response => {
+        setLoading(false);
+
         if (response.data.code === 200) {
           Toast.show({
             type: 'success',
@@ -131,10 +139,13 @@ export default function ConfirmTask() {
         }
       })
       .catch(error => {
+        setLoading(false);
+
         console.error('Error fetching tasks:', error);
       });
   };
   const handleConfirmHoanThanh = async () => {
+    setLoading(true);
     const stringConfirm = 'Hoàn thành';
 
     const url = `/hoan-thanh-task?type=${encodeURIComponent(
@@ -145,6 +156,8 @@ export default function ConfirmTask() {
     axiosInstance
       .post(url)
       .then(response => {
+        setLoading(false);
+
         if (response.data.code === 200) {
           Toast.show({
             type: 'success',
@@ -166,6 +179,8 @@ export default function ConfirmTask() {
         }
       })
       .catch(error => {
+        setLoading(false);
+
         console.error('Error fetching tasks:', error);
       });
     console.log('hoanf thanh');
@@ -209,6 +224,9 @@ export default function ConfirmTask() {
       return;
     }
   };
+  if (loading) {
+    return <Loading />;
+  }
   return (
     taskData && (
       <View style={styles.containerMain}>
@@ -318,59 +336,54 @@ export default function ConfirmTask() {
                 </View>
               </Modal>
             )}
-           
+
             <Toast />
           </ScrollView>
-         
 
-            
-            <View style={styles.buttonContainer}>
-              {showRescheduleButton && (
-                <TouchableOpacity onPress={handleReschedule}>
-                  <LinearGradient
-                    colors={['#FF6F00', '#FF9800']}
-                    style={styles.saveButton}>
-                    <Text style={styles.buttonTextMain}>Rời lịch</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              {showConfirmButton && (
-                <TouchableOpacity onPress={handleConfirmHoanThanh}>
-                  <LinearGradient
-                    colors={['#C6E6F1', '#C6E6F1']}
-                    style={styles.saveButton}>
-                    <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              {!showConfirmButton && (
-                <TouchableOpacity onPress={handleConfirmRoiLich}>
-                  <LinearGradient
-                    colors={['#C6E6F1', '#C6E6F1']}
-                    style={styles.saveButton}>
-                    <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              {!showConfirmButton && (
-                <TouchableOpacity onPress={handleCancel}>
-                  <LinearGradient
-                    colors={['#FF6F00', '#FF9800']}
-                    style={styles.saveButton}>
-                    <Text style={styles.buttonTextMain}>Huỷ</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-             
-            </View>
-            <View style={styles.buttonGoToLink}>
+          <View style={styles.buttonContainer}>
+            {showRescheduleButton && (
+              <TouchableOpacity onPress={handleReschedule}>
+                <LinearGradient
+                  colors={['#FF6F00', '#FF9800']}
+                  style={styles.saveButton}>
+                  <Text style={styles.buttonTextMain}>Rời lịch</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            {showConfirmButton && (
+              <TouchableOpacity onPress={handleConfirmHoanThanh}>
+                <LinearGradient
+                  colors={['#C6E6F1', '#C6E6F1']}
+                  style={styles.saveButton}>
+                  <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            {!showConfirmButton && (
+              <TouchableOpacity onPress={handleConfirmRoiLich}>
+                <LinearGradient
+                  colors={['#C6E6F1', '#C6E6F1']}
+                  style={styles.saveButton}>
+                  <Text style={styles.buttonTextMainConfirm}>Xác nhận</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            {!showConfirmButton && (
+              <TouchableOpacity onPress={handleCancel}>
+                <LinearGradient
+                  colors={['#FF6F00', '#FF9800']}
+                  style={styles.saveButton}>
+                  <Text style={styles.buttonTextMain}>Huỷ</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.buttonGoToLink}>
             <TouchableOpacity
-              onPress={() => GoToLink(taskData.task.description)}
-              >
+              onPress={() => GoToLink(taskData.task.description)}>
               <Text style={styles.linkButton}>Mở xem link</Text>
             </TouchableOpacity>
-            </View>
-           
+          </View>
         </View>
       </View>
     )
@@ -378,11 +391,11 @@ export default function ConfirmTask() {
 }
 const styles = StyleSheet.create({
   scollViewMain: {
-    paddingBottom: 20
+    paddingBottom: 20,
   },
   scollMain: {
     padding: 20,
-    paddingBottom: 50
+    paddingBottom: 50,
   },
   containerScoll: {
     paddingBottom: 20,

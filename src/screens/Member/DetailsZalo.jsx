@@ -10,7 +10,8 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
-  Keyboard
+  Keyboard,
+  Dimensions
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axiosInstance from '../../configs/axios';
@@ -20,7 +21,8 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
-
+const screenHeight = Dimensions.get('window').height;
+const containerHeight = screenHeight * 0.6;
 export default function DetailsZalo() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -173,91 +175,111 @@ export default function DetailsZalo() {
             <Text style={styles.inputHeader}>{task.customerName}</Text>
           </View>
         </LinearGradient>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mô tả</Text>
-            <Text>{task.description}</Text>
-          </View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Chuyên viên makeup</Text>
-            <View style={styles.row}>
-              {task.chuyenVienName.map((chuyenVien, index) => (
-                <Text key={index} style={styles.boxCategory}>
-                  {chuyenVien.nameUser}
-                  {index < task.chuyenVienName.length - 1 && ', '}
-                </Text>
-              ))}
+        <View styles={styles.containerScoll}>
+          <ScrollView 
+          contentContainerStyle={{paddingBottom: 30}}
+          style={styles.scrollMain}
+          
+          >
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Mô tả</Text>
+              <Text>{task.description}</Text>
             </View>
-          </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Chuyên viên makeup</Text>
+              <View style={styles.row}>
+                {task.chuyenVienName.map((chuyenVien, index) => (
+                  <Text key={index} style={styles.boxCategory}>
+                    {chuyenVien.nameUser}
+                    {index < task.chuyenVienName.length - 1 && ', '}
+                  </Text>
+                ))}
+              </View>
+            </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Địa chỉ</Text>
+              <Text>
+                {task.address}
+               
+              </Text>
 
-          <View style={styles.rowContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Ngày tạo</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="ngày tạo"
-                value={moment(task.createDate)
-                  .tz('Asia/Ho_Chi_Minh')
-                  .format('HH:mm DD-MM-YYYY')}
-                editable={false}
-              />
             </View>
+            <View style={styles.rowContainer}>
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Ngày tạo</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="ngày tạo"
+                  value={moment(task.createDate)
+                    .tz('Asia/Ho_Chi_Minh')
+                    .format('HH:mm DD-MM-YYYY')}
+                  editable={false}
+                />
+              </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Lịch Makeup</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="Chọn ngày hết hạn"
-                value={moment(task.timeMake)
-                  .tz('Asia/Ho_Chi_Minh')
-                  .format('HH:mm DD-MM-YYYY')}
-                editable={false}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Lịch Makeup</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="Chọn ngày hết hạn"
+                  value={moment(task.timeMake)
+                    .tz('Asia/Ho_Chi_Minh')
+                    .format('HH:mm DD-MM-YYYY')}
+                  editable={false}
+                />
+              </View>
             </View>
-          </View>
-          <View style={styles.rowContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Số tiền cọc</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="ngày tạo"
-                value={numberFormat.format(task.depositAmount)}
-                editable={false}
-              />
-            </View>
+            <View style={styles.rowContainer}>
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Số tiền cọc</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="ngày tạo"
+                  value={numberFormat.format(task.depositAmount)}
+                  editable={false}
+                />
+              </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.labelMore]}>Số tiền còn lại</Text>
-              <TextInput
-                style={[styles.inputMore]}
-                placeholder="Chọn ngày hết hạn"
-                value={numberFormat.format(task.moneyPaid)}
-                editable={false}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={[styles.labelMore]}>Số tiền còn lại</Text>
+                <TextInput
+                  style={[styles.inputMore]}
+                  placeholder="Chọn ngày hết hạn"
+                  value={numberFormat.format(task.moneyPaid)}
+                  editable={false}
+                />
+              </View>
             </View>
-          </View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Chi phí note thêm</Text>
-            <Text>{task.moreFee}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => handleConfirmHoanThanh(task.idZaloOrder)}>
-            <LinearGradient
-              colors={['#C6E6F1', '#C6E6F1']}
-              style={styles.saveButton}>
-              <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <Toast />
-        </ScrollView>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Chi phí note thêm</Text>
+              <Text>{task.moreFee}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleConfirmHoanThanh(task.idZaloOrder)}>
+              <LinearGradient
+                colors={['#C6E6F1', '#C6E6F1']}
+                style={styles.saveButton}>
+                <Text style={styles.buttonTextMainConfirm}>Hoàn thành</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <Toast />
+          </ScrollView>
+        </View>
       </View>
     )
   );
 }
 const styles = StyleSheet.create({
+  scrollMain:{
+    height: containerHeight,
+    padding: 20
+  },
+  containerScoll:{
+    paddingBottom: 30
+  },
   row: {
     flexDirection: 'row',
-    gap: 4
+    gap: 4,
   },
   containerMain: {},
   boxCategory: {
@@ -265,7 +287,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 12,
-    fontWeight: 700
+    fontWeight: 700,
   },
   header: {
     paddingVertical: 20,

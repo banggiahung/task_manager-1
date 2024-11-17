@@ -212,7 +212,11 @@ export default function ZaloClient() {
     // Cập nhật index của item đang mở
     setOpenSwipeableIndex(index);
   };
-
+  const handleEdit = (task)=>{
+    navigation.navigate("EditLichZalo", {
+      task: task,
+    });
+  }
   const handleSuccess = async taskId => {
     const url = `/status-change-zalo?id=${taskId}`;
     try {
@@ -278,10 +282,10 @@ export default function ZaloClient() {
   return (
     <GestureHandlerRootView style={{flex: 1, padding: 20}}>
       <View style={styles.buttonHeader}>
-        <TouchableOpacity
+         <TouchableOpacity
           style={styles.addButton}
-          >
-          <Text style={styles.buttonText}>Lịch Make</Text>
+          onPress={handleNavigateToAddLichZalo}>
+          <Text style={styles.buttonText}>Tạo Lịch</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.changeButton}
@@ -335,13 +339,23 @@ export default function ZaloClient() {
                   </View>
                 </TouchableOpacity>
               );
-
+              const renderRightActions = () => (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => handleEdit(item)}>
+                  <View>
+                    <Text style={styles.editButtonText}>Sửa</Text>
+                  </View>
+                </TouchableOpacity>
+              );
               return (
                 <Swipeable
-                  ref={ref => (swipeableRefs.current[index] = ref)} // Lưu tham chiếu Swipeable của mỗi item
+                  ref={ref => (swipeableRefs.current[index] = ref)} 
                   renderLeftActions={item.status !== 'Đã hoàn thành' ? renderLeftActions : () => null}
-                  onSwipeableClose={() => setOpenSwipeableIndex(null)} // Đóng Swipeable khi không mở
-                  onSwipeableOpen={() => handleSwipeOpen(index)} // Mở Swipeable khi item được mở
+                  renderRightActions={renderRightActions}
+                  onSwipeableClose={() => setOpenSwipeableIndex(null)}
+                  onSwipeableOpen={() => handleSwipeOpen(index)} 
+
                 >
                   <TouchableOpacity key={item.id} style={styles.itemTask} onPress={() => handleNavigationEdit(item)}>
                     <View style={styles.lich}>
@@ -635,6 +649,20 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
   deleteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  editButton:{
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '50%',
+    borderBottomRightRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  editButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
