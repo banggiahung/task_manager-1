@@ -18,8 +18,12 @@ import Toast from 'react-native-toast-message';
 import moment from 'moment-timezone';
 import LinearGradient from 'react-native-linear-gradient';
 import CheckBox from '@react-native-community/checkbox';
+import {storeData, getData} from '../../configs/asyncStorage.js';
+import Loading from '../../components/Loading';
 
 function ImportTask() {
+  const [loading, setLoading] = useState(false);
+
   const navigation = useNavigation();
   const route = useRoute();
   const user = route.params?.user;
@@ -91,7 +95,9 @@ function ImportTask() {
     setCurrentIndex(tasks.length);
   };
 
-  const SaveTask = () => {
+  const SaveTask = async () => {
+    setLoading(true);
+    const userId = await getData('userId');
     const dataToSend = tasks.map(task => {
       // Chuyển đổi ngày tháng sang định dạng mong muốn
       const createDateMain = moment(task.createDate)
@@ -101,7 +107,7 @@ function ImportTask() {
       const dueDateMain = moment(task.dueDate)
         .tz('Asia/Ho_Chi_Minh')
         .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        const taskDescription = task.description || "Không có mô tả";
+      const taskDescription = task.description || 'Không có mô tả';
       // Trả về đối tượng với các thuộc tính đã được định dạng
       return {
         assignedToUserID: task.assignedToUserID,
@@ -114,8 +120,13 @@ function ImportTask() {
     });
 
     axiosInstance
-      .post('/import-task-user', dataToSend)
+      .post(
+        `/import-task-user?UserIDAdmin=${userId.replace(/"/g, '')}`,
+        dataToSend,
+      )
       .then(res => {
+        setLoading(false);
+
         if (res.data.code === 200) {
           Toast.show({
             type: 'success',
@@ -139,6 +150,8 @@ function ImportTask() {
         }
       })
       .catch(err => {
+        setLoading(false);
+
         Toast.show({
           type: 'error',
           text1: 'Xảy ra lỗi',
@@ -151,7 +164,9 @@ function ImportTask() {
         });
       });
   };
-
+  if (loading) {
+    return <Loading />;
+  }
   return (
     <View style={styles.containerMain}>
       <LinearGradient colors={['#6A00F4', '#AE47F1']} style={styles.header}>

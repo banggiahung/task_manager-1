@@ -20,9 +20,12 @@ import {useFocusEffect} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import moment from 'moment-timezone';
 import CheckBox from '@react-native-community/checkbox';
+import {storeData, getData} from '../../configs/asyncStorage.js';
+import Loading from '../../components/Loading';
 
 function TaskDetail() {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const route = useRoute();
   const { task ,user} = route.params; 
@@ -89,7 +92,9 @@ function TaskDetail() {
     }
   };
  
-  const SaveTask = () => {
+  const SaveTask = async () => {
+    setLoading(true);
+    const userId = await getData('userId');
     
     const dataToSend = tasks.map(task => {
         // Tạo Date mới từ selectedCreateDate để giữ nguyên múi giờ
@@ -110,8 +115,9 @@ function TaskDetail() {
       console.log(dataToSend)
     try{
       axiosInstance
-      .post('/edit-task-user', dataToSend)
+      .post(`/edit-task-user?UserIDAdmin=${userId.replace(/"/g, '')}`, dataToSend)
       .then(res => {
+        setLoading(false);
 
         if (res.data.code === 200) {
           Toast.show({
@@ -134,6 +140,8 @@ function TaskDetail() {
         }
       })
       .catch(err => {
+        setLoading(false);
+
         Toast.show({
           type: 'error',
           text1: "Xảy ra lỗi",
@@ -146,6 +154,8 @@ function TaskDetail() {
         });
       });
     }catch{
+      setLoading(false);
+
       Toast.show({
         type: 'error',
         text1: "Xảy ra lỗi",
@@ -164,7 +174,9 @@ function TaskDetail() {
     updatedTasks[currentIndex].isKPI = isChecked;
     setTasks(updatedTasks);
   };
-
+  if (loading) {
+    return <Loading />
+  }
   return (
     <View style={styles.container}>
       <View style={styles.checkboxContainer}>

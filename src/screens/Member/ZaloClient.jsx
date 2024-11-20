@@ -27,6 +27,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import RNPickerSelect from 'react-native-picker-select';
 import debounce from 'lodash.debounce';
 import Loading from '../../components/Loading';
+import {storeData, getData} from '../../configs/asyncStorage.js';
 
 import 'moment/locale/vi';
 const screenHeight = Dimensions.get('window').height;
@@ -218,7 +219,9 @@ export default function ZaloClient() {
     });
   }
   const handleSuccess = async taskId => {
-    const url = `/status-change-zalo?id=${taskId}`;
+    const userId = await getData('userId');
+
+    const url = `/status-change-zalo?id=${taskId}&UserIDAdmin=${userId.replace(/"/g, '')}`;
     try {
       const response = await axiosInstance.get(url);
       if (response.data.code == 200) {

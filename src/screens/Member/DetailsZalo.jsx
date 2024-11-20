@@ -21,6 +21,8 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
+import {storeData, getData} from '../../configs/asyncStorage.js';
+
 const screenHeight = Dimensions.get('window').height;
 const containerHeight = screenHeight * 0.6;
 export default function DetailsZalo() {
@@ -113,6 +115,8 @@ export default function DetailsZalo() {
     minimumFractionDigits: 0,
   });
   const handleConfirmHoanThanh = async taskId => {
+    const userId = await getData('userId');
+
     if (taskState.status == 'Đã hoàn thành') {
       Toast.show({
         type: 'success',
@@ -121,7 +125,7 @@ export default function DetailsZalo() {
       });
       return;
     }
-    const url = `/status-change-zalo?id=${taskId}`;
+    const url = `/status-change-zalo?id=${taskId}&UserIDAdmin=${userId.replace(/"/g, '')}`;
     try {
       const response = await axiosInstance.get(url);
       if (response.data.code == 200) {

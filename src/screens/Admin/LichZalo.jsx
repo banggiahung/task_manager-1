@@ -25,6 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import RNPickerSelect from 'react-native-picker-select';
 import debounce from 'lodash.debounce'; // Thư viện debounce
 import Loading from '../../components/Loading';
+import {storeData, getData} from '../../configs/asyncStorage.js';
 
 import 'moment/locale/vi';
 const screenHeight = Dimensions.get('window').height;
@@ -211,8 +212,11 @@ export default function LichZalo() {
     setOpenSwipeableIndex(index);
   };
   const handleDelete = async (taskId) => {
+    const userId = await getData('userId');
+
     const formData = new FormData();
     formData.append("id", taskId);
+    formData.append("UserIDAdmin", userId.replace(/"/g, ''));
     try {
       const response = await axiosInstance.post('/delete-zalo-order', formData, {
         headers: {
@@ -270,7 +274,9 @@ export default function LichZalo() {
 
   };
   const handleSuccess = async (taskId) => {
-    const url = `/status-change-zalo?id=${taskId}`;
+    const userId = await getData('userId');
+
+    const url = `/status-change-zalo?id=${taskId}&UserIDAdmin=${userId.replace(/"/g, '')}`;
     try{
       const response = await axiosInstance.get(url);
       if(response.data.code == 200){

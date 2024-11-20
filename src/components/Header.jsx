@@ -7,6 +7,9 @@ function Header({title}) {
   const handleNavigate = () => {
     navigation.navigate('Profile');
   };
+  const handleNavigateNotification = () => {
+    navigation.navigate('Notification');
+  };
   const [avatar, setAvatar] = useState(null);
 
   useEffect(() => {
@@ -14,11 +17,11 @@ function Header({title}) {
       try {
         // Lấy dữ liệu avatar từ AsyncStorage
         const avatarPath = await getData('avatar');
-        console.log('Avatar path fetched:', avatarPath); 
-        if(avatarPath){
+        console.log('Avatar path fetched:', avatarPath);
+        if (avatarPath) {
           const cleanedAvatarPath = avatarPath
-          ? avatarPath.replace(/"/g, '')
-          : null;
+            ? avatarPath.replace(/"/g, '')
+            : null;
           if (cleanedAvatarPath) {
             setAvatar(cleanedAvatarPath);
           } else {
@@ -26,9 +29,8 @@ function Header({title}) {
           }
         }
         // Xóa dấu nháy nếu có
-      
+
         // Nếu có giá trị, thiết lập avatar
-      
       } catch (error) {
         console.error('Error fetching avatar:', error);
       }
@@ -36,19 +38,19 @@ function Header({title}) {
     fetchUserAvatar();
   }, []);
   const avatarSource =
-  avatar && avatar.trim() !== '' && avatar !== 'null'
-    ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
-      ? {uri: avatar}
-      : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
-    : {uri: 'https://i.pravatar.cc/300'};
+    avatar && avatar.trim() !== '' && avatar !== 'null'
+      ? avatar.startsWith('https://gigiapi.gigi.io.vn/')
+        ? {uri: avatar}
+        : {uri: `https://gigiapi.gigi.io.vn/${avatar}`}
+      : {uri: 'https://i.pravatar.cc/300'};
 
   return (
     <View style={styles.container}>
       {avatar && (
         <>
-          <View>
-            <Text style={styles.title}>{title}</Text>
-          </View>
+          <TouchableOpacity onPress={handleNavigateNotification}>
+            <Text style={styles.title}>Thông báo</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={handleNavigate}>
             <Image source={avatarSource} style={styles.avatar} />

@@ -22,6 +22,7 @@ import EditLichZalo from './src/screens/Admin/EditLichZalo.jsx';
 import ListTaskByUser from './src/screens/Member/ListTaskByUser.jsx';
 import ConfirmTask from './src/screens/Member/ConfirmTask.jsx';
 import DetailsZalo from './src/screens/Member/DetailsZalo.jsx';
+import Notification from './src/screens/Public/Notification.jsx';
 
 
 import Login from './src/screens/Auth/Login.jsx';
@@ -114,7 +115,14 @@ function App() {
             headerShown: false,
           }}
         />
-       
+       <Stack.Screen
+          name="Notification"
+          component={Notification}
+          options={{
+            title: '',
+            headerShown: true,
+          }}
+        />
         <Stack.Screen
           name="AddUsers"
           component={AddUsers}

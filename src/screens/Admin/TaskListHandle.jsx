@@ -20,6 +20,7 @@ import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Loading from '../../components/Loading';
 import CheckBox from '@react-native-community/checkbox';
+import {storeData, getData} from '../../configs/asyncStorage.js';
 
 function TaskListHandle() {
   const navigation = useNavigation();
@@ -98,8 +99,10 @@ function TaskListHandle() {
   const handleDetails = taskId => {
     navigation.navigate('ChiTietTaskUser', {user, taskId});
   };
-  const handleDelete = taskId => {
-    const url = `/delete-task-user?TaskID=${taskId}`;
+  const handleDelete = async taskId => {
+    const userId = await getData('userId');
+
+    const url = `/delete-task-user?TaskID=${taskId}&UserIDAdmin=${userId.replace(/"/g, '')}`;
     axiosInstance
       .post(url)
       .then(response => {

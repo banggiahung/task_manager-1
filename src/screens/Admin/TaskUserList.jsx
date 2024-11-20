@@ -26,6 +26,7 @@ import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import {CalendarList, Calendar} from 'react-native-calendars';
 import Loading from '../../components/Loading';
+import {storeData, getData} from '../../configs/asyncStorage.js';
 
 const screenHeight = Dimensions.get('window').height;
 const containerHeight = screenHeight * 0.5;
@@ -291,8 +292,10 @@ function TaskUserList() {
   const handleDetails = taskId => {
     navigation.navigate('ChiTietTaskUser', {user, taskId});
   };
-  const handleDelete = taskId => {
-    const url = `/delete-task-user?TaskID=${taskId}`;
+  const handleDelete = async (taskId,dateIndex) => {
+    const userId = await getData('userId');
+    console.log(dateIndex);
+    const url = `/delete-task-user?TaskID=${taskId}&UserIDAdmin=${userId.replace(/"/g, '')}`;
     axiosInstance
       .post(url)
       .then(response => {
@@ -305,14 +308,28 @@ function TaskUserList() {
           });
           setTasks(prevTasks => {
             const updatedTasks = [...prevTasks];
-            const index = updatedTasks.findIndex(
-              task => task.taskID === taskId,
-            );
-            if (index !== -1) {
-              updatedTasks.splice(index, 1);
+            // Tìm đúng ngày trong mảng
+            const day = updatedTasks.find(item => item.date === dateIndex); // Dùng `dateIndex` để tìm đúng ngày
+          
+            if (day && day.tasks) {
+              const updatedDayTasks = [...day.tasks];
+              const taskIndex = updatedDayTasks.findIndex(task => task.taskID === taskId);
+              
+              if (taskIndex !== -1) {
+                updatedDayTasks.splice(taskIndex, 1); // Xóa task khỏi mảng tasks của ngày đó
+              }
+              
+              // Cập nhật lại tasks của ngày sau khi xóa
+              updatedTasks.forEach(item => {
+                if (item.date === dateIndex) {
+                  item.tasks = updatedDayTasks;
+                }
+              });
             }
-            return updatedTasks;
+          
+            return updatedTasks; // Trả về mảng tasks đã cập nhật
           });
+          
         } else {
           Toast.show({
             type: 'error',
@@ -534,7 +551,7 @@ function TaskUserList() {
                         const renderRightActions = () => (
                           <TouchableOpacity
                             style={styles.deleteButton}
-                            onPress={() => handleDelete(task.taskID)}>
+                            onPress={() => handleDelete(task.taskID,item.date)}>
                             <View>
                               <Text style={styles.deleteButtonText}>Xóa</Text>
                             </View>

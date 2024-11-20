@@ -17,6 +17,7 @@ import Theme from '../../configs/color';
 import axiosInstance from '../../configs/axios';
 import TaskItem from '../../components/TaskItem';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 
 import {
   GestureHandlerRootView,
@@ -191,7 +192,23 @@ function ListTask() {
   };
 
   const HandleEdit = () => {
-    navigation.navigate('EditTaskTongQuan', {tasks});
+    if(tasks.length > 0){
+      navigation.navigate('EditTaskTongQuan', {tasks});
+
+    }
+    else{
+      Toast.show({
+        type: 'error',
+        text1: "Hiện tại tuần này chưa có nhiệm vụ",
+        text2: "Vui lòng thêm mới",
+        text2Style: {
+          fontWeight: '700',
+          color: 'black',
+        },
+        visibilityTime: 3000,
+      });
+    }
+
   };
 
   useFocusEffect(
@@ -292,6 +309,7 @@ function ListTask() {
           </View>
         </Modal>
       )}
+      <Toast/>
     </SafeAreaView>
   );
 }

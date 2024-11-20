@@ -48,7 +48,6 @@ function Dashboard() {
     if (role) {
       if (role.includes('Admin')) {
         navigation.navigate('Client', {screen: 'Home'});
-        
       } else {
         return;
       }
@@ -64,9 +63,7 @@ function Dashboard() {
         return;
       }
       setListUser(data.data);
-
     } catch (error) {
-
       console.log(error);
     } finally {
       setRefreshing(false);
@@ -108,16 +105,15 @@ function Dashboard() {
   if (loading) {
     return <Loading />;
   }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={fetchUsers} 
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={fetchUsers} />
         }>
+
         <TouchableOpacity onPress={handlePress} style={styles.headerContainer}>
           <Header title={`Tháng ${currentMon}`} />
         </TouchableOpacity>
@@ -143,7 +139,6 @@ function Dashboard() {
                 <Text style={styles.addButtonText}>Tổng quan</Text>
                 <FeatherIcons.Plus width={16} height={16} color="#1E90FF" />
               </TouchableOpacity>
-            
             </View>
             <View style={styles.userList}>
               {list_user.map((user, index) => (
