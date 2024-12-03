@@ -25,6 +25,8 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
 import image from '../../assets/background.png';
 import LinearGradient from 'react-native-linear-gradient';
+// import * as moment from 'moment';
+import moment from 'moment-timezone'; // Thay thế date-fns bằng moment
 
 function Profile() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -34,6 +36,7 @@ function Profile() {
   const [fullName, setFullName] = useState(null);
   const [tasksHoanThanh, setTasksHoanThanh] = useState(0);
   const [tasksHoanThanhNotKPI, setTasksHoanThanhNotKPI] = useState(0);
+  const [KPITask, setKPITask] = useState(0);
 
   const [tasksRoiLich, setTasksRoiLich] = useState(0);
   const [kpi, setKpi] = useState(0);
@@ -55,9 +58,9 @@ function Profile() {
   const sendUserID = async () => {
     try {
       const userId = await getData('userId');
-
+      const monthChange = moment().format('YYYY-MM-DD');
       const response = await axiosInstance.post(
-        '/get-thong-ke',
+        `/thong-ke-user?monthDate=${monthChange}`,
         JSON.stringify(userId.replace(/"/g, '')),
         {
           headers: {
@@ -67,17 +70,21 @@ function Profile() {
         },
       );
       const newData = response.data;
-      if (newData.daHoanThanh > 0) {
+      if (newData.daHoanThanh >= 0) {
         setTasksHoanThanh(newData.daHoanThanh);
       }
-      if (newData.roiLich > 0) {
+      if (newData.roiLich >= 0) {
         setTasksRoiLich(newData.roiLich);
       }
-      if (newData.kpiUser > 0) {
+      if (newData.kpiUser >= 0) {
         setKpi(newData.kpiUser);
       }
-      if(newData.hoanThanhNotKPI > 0){
+      if(newData.hoanThanhNotKPI >= 0){
         setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI)
+      }
+      if(newData.taskKPI >= 0){
+       
+        setKPITask(newData.taskKPI);
       }
     } catch (error) {
       console.error('Error sending UserID:', error);
@@ -396,7 +403,7 @@ function Profile() {
                     <LinearGradient
                       colors={['#86e3ce', '#91eae4']}
                       style={styles.square}>
-                      <Text style={styles.text}>KPI: {kpi}</Text>
+                      <Text style={styles.text}>KPI: {KPITask} / {kpi}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -411,7 +418,7 @@ function Profile() {
                       </Text>
                       <Text style={styles.text}>
                         {kpi > 0
-                          ? `(${Math.round((tasksHoanThanh / kpi) * 100)}%)`
+                          ? `(${Math.round((KPITask / kpi) * 100)}%)`
                           : '(Chưa có KPI)'}
                       </Text>
                     </LinearGradient>

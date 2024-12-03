@@ -62,7 +62,11 @@ function TaskUserList() {
   const [openSwipeableIndex, setOpenSwipeableIndex] = useState(null);
   const [selectedDateCalendar, setSelectedDateCalendar] = useState(null);
   const [todayDate, setTodayDate] = useState(false);
+  const [monthChange,setMonthChange] = useState(moment().format('YYYY-MM-DD'));
+  const [monthChangeStatus,setMonthChangeStatus] = useState(false);
+  const [KPITask, setKPITask] = useState(0);
   const handleDayPress = async day => {
+    
     setSelectedDateCalendar(day.dateString);
     let url = '';
     url = `/get-list-group-user?UserID=${encodeURIComponent(
@@ -84,17 +88,23 @@ function TaskUserList() {
   const handleMonthChange = async month => {
     const currentMonth = moment().format('YYYY-MM'); // Lấy tháng hiện tại theo định dạng 'YYYY-MM'
     const selectedMonth = month.dateString.slice(0, 7); // Lấy tháng được chọn từ dateString
-
+    console.log('selectedMonth', selectedMonth);
+    console.log('currentMonth', currentMonth);
+    const selectedDate = moment(month.dateString).format('YYYY-MM-DD');
     let url = '';
 
     // Kiểm tra nếu tháng được chọn là tháng hiện tại
     if (selectedMonth === currentMonth) {
+      setMonthChange(selectedDate);
+   
+
       setTodayDate(true);
 
       await fetchTasksRefresh();
       return;
     } else {
       setPage(1);
+      setMonthChangeStatus(true);
 
       const firstDayOfMonth = moment(month.dateString)
         .startOf('month')
@@ -106,13 +116,41 @@ function TaskUserList() {
       )}&Page=1&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}&chooseMonth=${encodeURIComponent(
         firstDayOfMonth,
       )}`;
+      setMonthChange(firstDayOfMonth);
+
     }
-    const response = await axiosInstance.get(url);
-    const newTasks = response.data.data;
-    if (response.data.code != 400) {
-      setTasks(newTasks);
-    } else {
-      setTasks([]);
+    try {
+      const response = await axiosInstance.get(url);
+  
+      if (response.data.code === 200) {
+        setLoading(true);
+
+        const newTasks = response.data.data;
+        setTasks(prevTasks => {
+          let updatedTasks = Array.isArray(prevTasks) ? [...prevTasks] : [];
+          if (updatedTasks.length > 0) {
+            const isDateExisting = updatedTasks.some(
+              item => item.date === newTasks.date,
+            );
+            if (!isDateExisting) {
+              updatedTasks.push(newTasks);
+            }
+            updatedTasks.sort((a, b) => {
+              return b.date.localeCompare(a.date);
+            });
+
+            return updatedTasks;
+          }
+          updatedTasks.push(newTasks);
+          return updatedTasks;
+        });
+        setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+      } else {
+        setTasks({ date: null, tasks: [] }); 
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setTasks({ date: null, tasks: [] }); // Xử lý lỗi
     }
   };
 
@@ -135,12 +173,13 @@ function TaskUserList() {
       // handleRefresh();
       // handleRefresh();
       sendUserID();
-    }, [user]),
+    }, [user,monthChange]),
   );
   const sendUserID = async () => {
     try {
+      console.log("monthChange",monthChange);
       const response = await axiosInstance.post(
-        '/get-thong-ke',
+        `/thong-ke-user?monthDate=${monthChange}`,
         JSON.stringify(user.id),
         {
           headers: {
@@ -150,14 +189,19 @@ function TaskUserList() {
         },
       );
       const newData = response.data;
-      if (newData.daHoanThanh > 0) {
+      console.log('newData', newData);  
+      if (newData.daHoanThanh >= 0) {
         setTasksHoanThanh(newData.daHoanThanh);
       }
-      if (newData.roiLich > 0) {
+      if (newData.roiLich >= 0) {
         setTasksRoiLich(newData.roiLich);
       }
-      if (newData.hoanThanhNotKPI > 0) {
+      if (newData.hoanThanhNotKPI >= 0) {
         setTasksHoanThanhNotKPI(newData.hoanThanhNotKPI);
+      }
+      if(newData.taskKPI >= 0){
+        console.log('newData.taskKPI',newData.taskKPI);
+        setKPITask(newData.taskKPI);
       }
     } catch (error) {
       console.error('Error sending UserID:', error);
@@ -171,27 +215,34 @@ function TaskUserList() {
     // Cập nhật index của item đang mở
     setOpenSwipeableIndex(index);
   };
-  const fetchTasks = async pageNew => {
+  const fetchTasks = async (pageNew) => {
     console.log('selectedDateCalendar', selectedDateCalendar);
     if (selectedDateCalendar != null) {
       setPage(1);
       return;
     }
     let today = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
-    console.log('page', page);
-    console.log(totalPage);
     if (totalPage != 0 && page > totalPage) return;
     let url = '';
-    console.log(todayDate);
     setRefreshing(true);
     setLoading(true);
-    if (todayDate) {
+    console.log("monthChangeStatus",monthChangeStatus);
+    if(monthChangeStatus){
+      console.log('gọi vào đây monthChangeStatus');
+      url = `/get-list-group-user?UserID=${encodeURIComponent(
+        user.id,
+      )}&Page=${pageNew}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}&chooseMonth=${encodeURIComponent(
+        monthChange,
+      )}`;
+    }
+    else if (todayDate) {
       console.log('gọi vào đây');
 
       url = `/get-list-group-user?UserID=${encodeURIComponent(
         user.id,
       )}&Page=${pageNew}&ItemsPerPage=${itemsPerPage}&_maxItemsPerPage=${itemsPerPage}&itemsPerPage=${itemsPerPage}`;
-    } else {
+    } 
+    else {
       console.log('gọi vào đây 2');
 
       url = `/get-list-group-user?UserID=${encodeURIComponent(
@@ -207,30 +258,35 @@ function TaskUserList() {
       .then(response => {
         setRefreshing(false);
         const newTasks = response.data.data;
-        console.log(newTasks);
-        setTasks(prevTasks => {
-          let updatedTasks = Array.isArray(prevTasks) ? [...prevTasks] : [];
-          if (updatedTasks.length > 0) {
-            const isDateExisting = updatedTasks.some(
-              item => item.date === newTasks.date,
-            );
-            if (!isDateExisting) {
-              updatedTasks.push(newTasks);
+        console.log("newTasks",newTasks);
+        if(newTasks != undefined){
+          setTasks(prevTasks => {
+            let updatedTasks = Array.isArray(prevTasks) ? [...prevTasks] : [];
+            if (updatedTasks.length > 0) {
+              const isDateExisting = updatedTasks.some(
+                item => item.date === newTasks.date,
+              );
+              if (!isDateExisting) {
+                updatedTasks.push(newTasks);
+              }
+              updatedTasks.sort((a, b) => {
+                if (a.date === today) return -1;
+                if (b.date === today) return 1;
+                return b.date.localeCompare(a.date);
+              });
+  
+              return updatedTasks;
             }
-            updatedTasks.sort((a, b) => {
-              if (a.date === today) return -1;
-              if (b.date === today) return 1;
-              return b.date.localeCompare(a.date);
-            });
-
+            updatedTasks.push(newTasks);
             return updatedTasks;
-          }
-          updatedTasks.push(newTasks);
-          return updatedTasks;
-        });
-
-        setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+          });
+  
+          setTotalPage(response.data.pagination.totalPages); // Cập nhật tổng số trang
+          setLoading(false);
+        }
+        console.log("chạy đến đây")
         setLoading(false);
+        
       })
       .catch(error => {
         setRefreshing(false);
@@ -242,7 +298,7 @@ function TaskUserList() {
 
   const fetchTasksRefresh = () => {
     setSelectedDateCalendar(null);
-
+    setMonthChangeStatus(false)
     setPage(1);
     let today = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
 
@@ -261,9 +317,15 @@ function TaskUserList() {
 
         const newTasks = response.data.data;
         console.log(newTasks);
-        setTasks([newTasks]);
+        if(newTasks != undefined){
+          setTasks([newTasks]);
 
-        setTotalPage(response.data.pagination.totalPages);
+          setTotalPage(response.data.pagination.totalPages);
+        }else{
+
+          setTasks([]);
+        }
+        
         // // Nếu có task mới sau khi lọc, thêm vào mảng `tasks`
         // if (uniqueNewTasks.length > 0) {
         //   setTasks(prevTasks => [...prevTasks, ...uniqueNewTasks]);
@@ -433,12 +495,12 @@ function TaskUserList() {
                 <Text style={styles.text}>
                   KPI:
                   <Text style={styles.text}>
-                    {tasksHoanThanh >= 0 ? tasksHoanThanh : '0'}/{user?.kpiUser}
+                    {KPITask >= 0 ? KPITask : '0'}/{user?.kpiUser}
                   </Text>
                   <Text style={styles.text}>
                     {user?.kpiUser > 0
                       ? `(${Math.round(
-                          (tasksHoanThanh / user.kpiUser) * 100,
+                          (KPITask / user.kpiUser) * 100,
                         )}%)`
                       : '(Chưa có KPI)'}
                   </Text>
@@ -525,7 +587,7 @@ function TaskUserList() {
                   onRefresh={() => {
                     setRefreshingOld(true);
                     console.log('Refreshing data');
-                    fetchTasksRefresh();
+                     fetchTasksRefresh();
                   }}
                 />
               }
