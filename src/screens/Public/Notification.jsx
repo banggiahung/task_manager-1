@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,9 @@ import {
   Image,
 } from 'react-native';
 
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axiosInstance from '../../configs/axios';
-import {storeData, getData} from '../../configs/asyncStorage';
+import { storeData, getData } from '../../configs/asyncStorage';
 import Header from '../../components/Header';
 import TaskItem from '../../components/TaskItem.jsx';
 import Theme from '../../configs/color';
@@ -97,7 +97,7 @@ export default function Notification() {
         ) : (
           <View style={styles.containerScroll}>
             <FlatList
-              contentContainerStyle={{paddingBottom: paddingBottom}}
+              contentContainerStyle={{ paddingBottom: paddingBottom }}
               showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
               data={history}
@@ -120,7 +120,7 @@ export default function Notification() {
               onEndReached={() => handleLoadMore()}
               onEndReachedThreshold={0.1}
               refreshing={refreshing}
-              renderItem={({item}) => {
+              renderItem={({ item }) => {
                 return (
                   <View style={styles.containerItem}>
                     <View style={styles.imageContainer}>
@@ -130,21 +130,21 @@ export default function Notification() {
                       />
                     </View>
                     <View>
-                    <View style={styles.headerItem}>
-                      <View style={styles.nameUserHeader}>
-                        <Text style={styles.textHeader}>{item.nameUser}</Text>
+                      <View style={styles.headerItem}>
+                        <View style={styles.nameUserHeader}>
+                          <Text style={styles.textHeader}>{item.nameUser}</Text>
+                        </View>
+                        <View style={styles.dateHeader}>
+                          <Text style={styles.textHeader}>
+                            {moment(item.createDate).format('DD/MM/YYYY * HH:mm')}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.dateHeader}>
-                        <Text style={styles.textHeader}>
-                          {moment(item.createDate).format('DD/MM/YYYY * HH:mm')}
-                        </Text>
+                      <View style={styles.itemContainer}>
+                        <Text style={[styles.textContent]}>{item.noiDung}</Text>
                       </View>
                     </View>
-                    <View style={styles.itemContainer}>
-                      <Text style={[styles.textContent]}>{item.noiDung}</Text>
-                    </View>
-                    </View>
-                   
+
                   </View>
                 );
               }}
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   imageContainer: {
-   
+
     overflow: 'hidden',
     borderRadius: 25,
     marginRight: 10,
@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 16,
     flexDirection: "row",
-    alignItems: "center", 
-    
+    alignItems: "center",
+
 
   },
   headerItem: {
