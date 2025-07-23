@@ -29,6 +29,8 @@ import Login from './src/screens/Auth/Login.jsx';
 import Registration from './src/screens/Auth/Registration.jsx';
 
 import Profile from './src/screens/Auth/Profile.jsx';
+import ProductListScreen from './src/screens/Product/ProductListScreen.jsx';
+import ProductDetailScreen from './src/screens/Product/ProductDetailScreen.jsx';
 import MainNavigator from './src/components/MainNavigator';
 import ClientNavigator from './src/components/ClientNavigator';
 import messaging from '@react-native-firebase/messaging';
@@ -107,7 +109,16 @@ function App() {
           component={IntroScreen}
           options={{headerShown: false}}
         />
-
+{/* <Stack.Screen
+  name="ProductList"
+  component={ProductListScreen}
+  options={{ title: 'Sản phẩm', headerShown: true }}
+/>
+<Stack.Screen
+  name="ProductDetail"
+  component={ProductDetailScreen}
+  options={{ title: 'Chi tiết sản phẩm', headerShown: true }}
+/> */}
         <Stack.Screen
           name="Login"
           component={Login}

@@ -54,7 +54,6 @@ export default function Login() {
       .then(res => {
         setLoading(false);
         const res_data = res.data;
-        console.log(res_data);
         if (res_data.code === 200) {
           storeData('token', res_data.token);
           storeData('refreshToken', res_data.refreshToken);
@@ -121,6 +120,7 @@ export default function Login() {
   }
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#5440F6'}}>
+      
       <View
         style={{
           justifyContent: 'center',
@@ -149,6 +149,7 @@ export default function Login() {
             paddingBottom: 1000,
           }}
           keyboardShouldPersistTaps="handled">
+            
           <Image
             source={{uri: 'https://gigiapi.gigi.io.vn/gigi-logo.png'}}
             style={{

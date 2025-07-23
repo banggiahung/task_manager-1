@@ -60,6 +60,23 @@ export default function ZaloClient() {
       setSort('Hoàn thành');
     }
   };
+  useFocusEffect(
+  React.useCallback(() => {
+    const restorePage = async () => {
+      const savedPage = await getData('zaloCurrentPage');
+      if (savedPage) {
+        const parsedPage = parseInt(savedPage, 10);
+        if (!isNaN(parsedPage)) {
+          setPage(parsedPage);
+        }
+        await storeData('zaloCurrentPage', null); // Xóa sau khi dùng
+      }
+    };
+
+    restorePage();
+  }, [])
+);
+
   const fetchTasks = () => {
     setRefreshing(true);
 
@@ -273,7 +290,8 @@ export default function ZaloClient() {
     currency: 'VND',
     minimumFractionDigits: 0,
   });
-  const handleNavigationEdit = (task)=>{
+  const handleNavigationEdit = async (task)=>{
+    await storeData('zaloCurrentPage', page); 
     navigation.navigate("DetailsZalo", {
       
       task: task,
